@@ -1,0 +1,569 @@
+html, body {
+    height: 100%;
+    margin: 0; /* remove default white-space around the page */
+    background-color: #111; /* extend background to full page */
+    overflow: hidden; /* prevent page scroll — calendar handles its own scrolling */
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+/* Login Screen Styles */
+#login-screen {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #111;
+}
+
+.login-container {
+    background-color: #222;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-container h1 {
+    color: #FF4F91;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+#login-form label {
+    color: #fff;
+    display: block;
+    margin-bottom: 8px;
+}
+
+#login-form input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    background-color: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+#login-form input[type="password"]:focus {
+    outline: none;
+    border-color: #FF4F91;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 12px;
+    background-color: #FF4F91;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-login:hover {
+    background-color: #ff85b8;
+}
+
+.login-error {
+    color: #ff6b6b;
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    background-color: rgba(255, 107, 107, 0.1);
+    border-radius: 4px;
+}
+
+/* Logout Button */
+.logout-button {
+    padding: 6px 10px;
+    background-color: #555;
+    border: 1px solid #111111;
+    color: #ffffff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    margin-left: 4px;
+}
+
+.logout-button:hover {
+    background-color: #777;
+}
+
+#calendar {
+    width: 100%;
+    height: 100vh; /* lock to viewport height */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin: 0; /* ensure no automatic centering margin */
+    overflow: hidden; /* avoid page scroll - use internal scrolling */
+}
+
+#calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px; /* slightly reduced to save vertical space */
+    background-color: #111111;
+    color: #FF4F91;
+    flex: 0 0 auto;
+}
+
+/* Positioning for centered month title with controls on right */
+#calendar-header {
+    position: relative;
+}
+
+#month {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+}
+
+/* Month/Year picker popup */
+#month-year-picker {
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1b1b1b;
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    z-index: 2000;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Ensure the picker can be hidden even though the base rule uses an ID selector
+   (ID has higher specificity than a plain class). Using the combined selector
+   guarantees `display: none` wins when the element has the `hidden` class. */
+#month-year-picker.hidden { display: none; }
+
+.hidden { display: none; }
+
+#month-year-picker label { font-size: 0.85em; color: #ffaac9; }
+#month-year-picker select { padding: 6px; background: #111; color: #fff; border: 1px solid #333; border-radius: 4px; }
+
+#month-controls {
+    margin-left: auto; /* push to the right */
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#month-controls .change-month {
+    padding: 6px 10px;
+    background-color: #FF4F91;
+    border: 1px solid #111111;
+    color: #ffffff;
+    border-radius: 4px;
+}
+
+#month-controls .change-month:hover {
+    background-color: #ff85b8;
+}
+
+#weekdays-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background-color: #333;
+    color: #FF4F91;
+    text-align: center;
+    padding: 6px 8px; /* reduce vertical padding so header consumes less height */
+    flex: 0 0 auto;
+}
+
+#calendar-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: #333;
+    color: #fff;
+    /* let the calendar body grow to fill remaining space under the header */
+    flex: 1 1 auto;
+    /* Ensure rows can shrink with available space and avoid forcing page scroll */
+    grid-auto-rows: minmax(0, 1fr);
+    /* allow internal scrolling if month content exceeds viewport */
+    overflow: auto;
+}
+
+#calendar-body div {
+    padding: 20px;
+    background-color: #222222;
+    text-align: center;
+}
+
+#calendar-body div.today {
+    background-color: #FF4F91;
+    color: #fff;
+}
+
+#calendar-body div.day-cell {
+    padding: 8px;
+    background-color: #222222;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    /* Row height is calculated dynamically via JavaScript so the whole month fits the viewport */
+    word-wrap: break-word;
+    cursor: pointer;
+    position: relative;
+}
+
+#calendar-body div.day-cell.today {
+    background-color: #222222;
+    color: #fff;
+    border: 3px solid #FF4F91;
+    box-sizing: border-box;
+}
+
+#calendar-body div.day-cell .day-number {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 4px;
+}
+
+/* Event items within day cells: use the same enhanced style as today's events */
+#calendar-body div.day-cell .event-item {
+    background-color: #ffbbcf; /* copied user's adjusted color */
+    color: #111111;
+    font-weight: 600;
+    /* Use flex so time sits on the left, title to the right */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* padding provides space from cell edges; left padding keeps time away from side */
+    padding: 6px 10px 6px 14px;
+    margin: 4px 0;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    font-size: 0.9em;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: clip;
+    line-height: 1.2;
+    max-height: 3.6em; /* visually limit very long entries */
+    width: 100%;
+    box-sizing: border-box; /* ensure padding counted in width */
+}
+
+/* Styling for the time label and the event title inside the event box */
+#calendar-body div.day-cell .event-item .event-time {
+    display: inline-block;
+    /* reserve a fixed column for time so title truncation is based on column width */
+    flex: 0 0 56px;
+    width: 56px;
+    text-align: left;    /* justify the time to the left of that reserved area */
+    font-weight: 700;
+    font-size: 0.82em;
+    color: inherit;
+    opacity: 0.95;
+}
+
+/* Allow the title to take remaining space and wrap if necessary */
+#calendar-body div.day-cell .event-item .event-title {
+    flex: 0 0 20ch;
+    max-width: 20ch;
+    min-width: 0; /* allow truncation when space is constrained */
+    /* Single-line truncation with ellipsis */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+}
+
+/* All-day events: center content and underline title */
+#calendar-body div.day-cell .event-item.all-day-event {
+    justify-content: center;
+    text-align: center;
+}
+
+#calendar-body div.day-cell .event-item.all-day-event .event-title {
+    flex: 1 1 auto;
+    max-width: 100%;
+    text-align: center;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#calendar-body div.day-cell.today .event-item {
+    /* Make today's events high-contrast against the pink today background */
+    background-color: #ffbbcf;
+    color: #111111;
+    font-weight: 600;
+    padding: 6px 10px 6px 14px;
+    margin: 4px 0;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    /* Keep compact size, don't expand */
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: clip;
+    line-height: 1.2;
+    max-height: 3.6em;
+    flex-shrink: 0;
+}
+
+.change-month {
+    padding: 10px 20px;
+    font-size: 15px;
+    border: none;
+    background: #FF4F91;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255,79,145,0.15);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* Popup form centered on screen */
+.form-popup {
+    display: none; /* JS will toggle to block */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1b1b1b;
+    color: #fff;
+    padding: 18px;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    z-index: 9999;
+    width: min(520px, 92%);
+}
+
+.form-popup h2 {
+    margin-top: 0;
+}
+
+/* close X in top-right of popup */
+.form-popup .form-close-x {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+.form-popup .form-close-x:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.form-popup input[type="text"],
+.form-popup input[type="date"],
+.form-popup input[type="time"],
+.form-popup textarea {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0 12px 0;
+    box-sizing: border-box;
+    background: #111;
+    border: 1px solid #333;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.form-popup .btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #FF4F91;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.form-popup .btn.cancel {
+    background: #444;
+    margin-left: 8px;
+}
+
+/* change the background for empty cells from previous/next month */
+#calendar-body div.prev-date,
+#calendar-body div.next-date {
+    background-color: #282828; /* Same color as main cells */
+    color: transparent; /* just in case content appears */
+}
+
+.open-button {
+    background-color: #FF4F91;
+    color: white;
+    padding: 2px 10px;
+    border: none;
+    cursor: pointer;
+    opacity: 0.8;
+    border-radius: 4px;
+    font-size: 15px;
+    margin-right: 12px;
+}
+
+#today-button {
+    font-size: 15.0px; /* 10% smaller than the plus button (24px * 0.9 = 21.6px) */
+    padding: 2px 9px; /* Slightly reduced padding to match smaller size */
+}
+
+/* Color picker styles */
+.color-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.color-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+    gap: 6px;
+    padding: 8px;
+    background: #1b1b1b;
+    border: 1px solid #333;
+    border-radius: 6px;
+    max-width: 240px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+
+.color-options.hidden {
+    display: none;
+}
+
+.color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.6);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.color-swatch:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.4); }
+.color-swatch:focus { outline: 2px solid #ffaac9; outline-offset: 2px; }
+
+.color-preview {
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+/* Event details modal */
+#event-detail-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow: auto;
+}
+
+#event-detail-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#event-detail-modal .modal-content {
+    background: #1b1b1b;
+    color: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    width: min(500px, 90%);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#event-detail-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+#event-detail-modal .modal-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #ffaac9;
+}
+
+#event-detail-modal .modal-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+#event-detail-modal .modal-close:hover {
+    color: #ffaac9;
+}
+
+#event-detail-modal .modal-field {
+    margin-bottom: 12px;
+}
+
+#event-detail-modal .modal-field-label {
+    font-weight: 600;
+    color: #ffaac9;
+    font-size: 0.9em;
+}
+
+#event-detail-modal .modal-field-value {
+    color: #ddd;
+    word-break: break-word;
+    margin-top: 4px;
+}
+
+/* Modal edit button */
+.modal-delete {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+.modal-delete:hover { color: #ff6b6b; }
+
+.modal-duplicate {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+.modal-duplicate:hover { color: #aed6f1; }
+
+.modal-edit {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+.modal-edit:hover { color: #ffaac9; }

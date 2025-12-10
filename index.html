@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Best Calendar v3</title>
+	<link rel="stylesheet" href="styles.css">
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="config.js"></script>
+	<script src="auth.js"></script>
+</head>
+<body>
+	<!-- Login Screen -->
+	<div id="login-screen" style="display: none;">
+		<div class="login-container">
+			<h1>Calendar Login</h1>
+			<form id="login-form" onsubmit="handleLogin(event)">
+				<label for="login-password"><b>Password</b></label>
+				<input type="password" id="login-password" placeholder="Enter password" required autofocus>
+				<button type="submit" class="btn-login">Login</button>
+				<div id="login-error" class="login-error" style="display: none;"></div>
+			</form>
+		</div>
+	</div>
+
+	<div id="calendar" style="display: none;">
+		<div id="calendar-header">
+            <button class="open-button" onclick="openForm()">+</button>
+			<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
+			<h1 id="month">November 2025</h1>
+			<div id="month-year-picker" class="hidden" aria-hidden="true">
+				<label for="year-select">Year</label>
+				<select id="year-select"></select>
+				<label for="month-select">Month</label>
+				<select id="month-select" disabled></select>
+				<div style="margin-top:8px; display:flex; gap:8px; justify-content:center;">
+					<button id="picker-go" class="btn">Go</button>
+					<button id="picker-cancel" class="btn cancel">Cancel</button>
+				</div>
+			</div>
+			<div id="month-controls">
+				<button id="month-prev" class="change-month">&lt;</button>
+				<button id="month-next" class="change-month">&gt;</button>
+				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⏻</button>
+			</div>
+        </div>
+		<form>
+			<div class="form-popup" id="myForm">
+				<button type="button" class="form-close-x" aria-label="Close" onclick="closeForm()">&times;</button>
+				<h2>Event Form</h2>
+				<label for="event-title"><b>Event Title</b></label>
+				<input type="text" id="event-title" placeholder="Enter Event Title" required>
+
+				<label for="event-date"><b>Event Date</b></label>
+				<input type="date" id="event-date" required>
+
+				<label for="event-time"><b>Event Time</b></label>
+				<input type="time" id="event-time" required>
+
+				<div style="margin: 12px 0;">
+					<label for="add-end-time" style="display: block;"><input type="checkbox" id="add-end-time"> Add End Time</label>
+				</div>
+				
+				<div style="margin: 12px 0;">
+					<label for="all-day-event" style="display: block;"><input type="checkbox" id="all-day-event"> All Day Event</label>
+				</div>
+				
+				<div id="end-time-container" style="display: none;">
+					<label for="event-end-time"><b>End Time</b></label>
+					<input type="time" id="event-end-time">
+				</div>
+
+				<div style="margin: 12px 0;">
+					<label for="repeat-event" style="display: block;"><input type="checkbox" id="repeat-event"> Repeat Event</label>
+				</div>
+
+				<div id="recurrence-container" style="display: none;">
+					<label for="recurrence-pattern"><b>Repeat Pattern</b></label>
+					<select id="recurrence-pattern">
+						<option value="">None</option>
+						<option value="DAILY">Daily</option>
+						<option value="WEEKLY">Weekly</option>
+						<option value="MONTHLY">Monthly</option>
+						<option value="MONTHLY_NTH">Monthly on nth Weekday</option>
+						<option value="YEARLY">Yearly</option>
+						<option value="CUSTOM_DAYS">Custom Days</option>
+					</select>
+
+					<label for="recurrence-interval"><b>Every</b></label>
+					<div style="display: flex; gap: 8px; align-items: center;">
+						<input type="number" id="recurrence-interval" min="1" value="1" style="width: 80px;">
+						<span id="interval-label">day(s)</span>
+					</div>
+
+					<div id="nth-weekday-container" style="display: none; margin: 12px 0;">
+						<label for="nth-week"><b>Which week?</b></label>
+						<select id="nth-week" style="width: 100%; margin-top: 4px;">
+							<option value="1">1st</option>
+							<option value="2">2nd</option>
+							<option value="3">3rd</option>
+							<option value="4">4th</option>
+							<option value="-1">Last</option>
+						</select>
+						<label for="nth-weekday" style="margin-top: 8px;"><b>Which day?</b></label>
+						<select id="nth-weekday" style="width: 100%; margin-top: 4px;">
+							<option value="MON">Monday</option>
+							<option value="TUE">Tuesday</option>
+							<option value="WED">Wednesday</option>
+							<option value="THU">Thursday</option>
+							<option value="FRI">Friday</option>
+							<option value="SAT">Saturday</option>
+							<option value="SUN">Sunday</option>
+						</select>
+					</div>
+
+					<div id="custom-days-container" style="display: none; margin: 12px 0;">
+						<label><b>Repeat on:</b></label>
+						<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+							<label><input type="checkbox" class="day-checkbox" value="MON"> Mon</label>
+							<label><input type="checkbox" class="day-checkbox" value="TUE"> Tue</label>
+							<label><input type="checkbox" class="day-checkbox" value="WED"> Wed</label>
+							<label><input type="checkbox" class="day-checkbox" value="THU"> Thu</label>
+							<label><input type="checkbox" class="day-checkbox" value="FRI"> Fri</label>
+							<label><input type="checkbox" class="day-checkbox" value="SAT"> Sat</label>
+							<label><input type="checkbox" class="day-checkbox" value="SUN"> Sun</label>
+						</div>
+					</div>
+
+					<div style="margin: 12px 0;">
+						<label><b>End Recurrence:</b></label>
+						<div style="margin-top: 6px;">
+							<label style="display: block; margin-bottom: 4px;">
+								<input type="radio" name="recurrence-end-type" value="none" checked> Never
+							</label>
+							<label style="display: block; margin-bottom: 4px;">
+								<input type="radio" name="recurrence-end-type" value="date"> On date:
+							</label>
+							<input type="date" id="recurrence-end-date" style="margin-left: 20px; margin-bottom: 8px;">
+							<label style="display: block;">
+								<input type="radio" name="recurrence-end-type" value="count"> After:
+							</label>
+							<div style="display: flex; gap: 8px; align-items: center; margin-left: 20px;">
+								<input type="number" id="recurrence-count" min="1" value="10" style="width: 80px;">
+								<span>occurrences</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<label for="event-location"><b>Location</b></label>
+				<input type="text" id="event-location" placeholder="Optional location">
+
+				<label for="event-description"><b>Description</b></label>
+				<textarea id="event-description" placeholder="Optional description" rows="3"></textarea>
+
+				<label for="event-color"><b>Event Color</b></label>
+				<div class="color-picker">
+					<button type="button" id="color-picker-toggle" class="btn" aria-expanded="false">Pick Color</button>
+					<div id="color-options" class="color-options hidden" role="listbox" aria-label="Choose event color"></div>
+					<div id="color-preview" class="color-preview" aria-live="polite">Default</div>
+					<input type="hidden" id="event-color" value="">
+				</div>
+
+				<input type="hidden" id="editing-event-id" value="">
+				<button type="submit" id="event-submit-btn" class="btn">Add Event</button>
+				<button type="button" id="delete-event-btn" class="btn cancel" style="display: none;" onclick="deleteEventFromForm()">Delete</button>
+				<button type="button" class="btn cancel" onclick="closeForm()">Close</button>
+			</div>
+		</form>
+		<div id="weekdays-header">
+			<div>Mon</div>
+			<div>Tue</div>
+			<div>Wed</div>
+			<div>Thu</div>
+			<div>Fri</div>
+			<div>Sat</div>
+			<div>Sun</div>
+		</div>	
+		<div id="calendar-body">
+			
+		</div>
+	</div>
+	<!-- Event detail modal -->
+	<div id="event-detail-modal"></div>
+	<script src="supabase.js"></script>
+  <script src="calendar.js"></script>
+</body>
+</html>
