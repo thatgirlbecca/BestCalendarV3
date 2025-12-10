@@ -98,8 +98,10 @@ async function handleLogin(event) {
     // Show calendar, hide login
     showCalendar();
     
-    // Initialize calendar
-    renderCalendar();
+    // Initialize calendar (call the initialization function from calendar.js)
+    if (typeof initializeCalendar === 'function') {
+      initializeCalendar();
+    }
   } else {
     // Show error
     errorDiv.textContent = 'Invalid password. Please try again.';

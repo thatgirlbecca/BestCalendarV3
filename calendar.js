@@ -928,6 +928,12 @@ window.addEventListener('DOMContentLoaded', () => {
     return; // Wait for login
   }
   
+  // Initialize calendar if already authenticated
+  initializeCalendar();
+});
+
+// Separate initialization function that can be called after login
+function initializeCalendar() {
   // Initialize the calendar on page load
   renderCalendar();
 
@@ -1290,4 +1296,17 @@ window.addEventListener('DOMContentLoaded', () => {
     hidePicker();
     renderCalendar();
   });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Check authentication first
+  const isAuth = initAuth();
+  
+  // Only initialize calendar if authenticated
+  if (!isAuth) {
+    return; // Wait for login
+  }
+  
+  // Initialize calendar if already authenticated
+  initializeCalendar();
 });
