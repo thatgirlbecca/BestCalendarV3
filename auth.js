@@ -98,9 +98,15 @@ async function handleLogin(event) {
     // Show calendar, hide login
     showCalendar();
     
+    console.log('Login successful, checking for initializeCalendar...');
+    console.log('typeof initializeCalendar:', typeof initializeCalendar);
+    
     // Initialize calendar (call the initialization function from calendar.js)
     if (typeof initializeCalendar === 'function') {
+      console.log('Calling initializeCalendar()');
       initializeCalendar();
+    } else {
+      console.error('initializeCalendar is not defined!');
     }
   } else {
     // Show error
