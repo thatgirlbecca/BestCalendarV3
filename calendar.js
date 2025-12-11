@@ -932,8 +932,21 @@ window.addEventListener('DOMContentLoaded', () => {
   initializeCalendar();
 });
 
+// Track if calendar has been initialized to prevent double-initialization
+let calendarInitialized = false;
+
 // Separate initialization function that can be called after login
 function initializeCalendar() {
+  console.log('initializeCalendar() called');
+  
+  if (calendarInitialized) {
+    console.log('Calendar already initialized, skipping...');
+    return;
+  }
+  
+  calendarInitialized = true;
+  console.log('Initializing calendar for the first time');
+  
   // Initialize the calendar on page load
   renderCalendar();
 
