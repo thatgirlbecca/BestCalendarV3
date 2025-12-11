@@ -1,6 +1,12 @@
 let date = new Date();
 let calendarEvents = []; // Store events for the current month view
-let currentView = 'month'; // 'month' or 'week'
+let currentView = localStorage.getItem('calendar_view') || 'month'; // 'month' or 'week'
+
+// Restore the last viewed date if available
+const savedDate = localStorage.getItem('calendar_date');
+if (savedDate) {
+  date = new Date(savedDate);
+}
 
 // Format a time string ("HH:MM" or "HH:MM:SS") into a human-friendly label
 function formatTime(timeStr) {
@@ -193,7 +199,16 @@ function expandRecurringEvents(events, startDate, endDate) {
 
 async function renderWeekView() {
     const monthDays = document.getElementById('calendar-body');
+    const weekViewContainer = document.getElementById('week-view-container');
+    const timeline = document.getElementById('timeline');
     const monthHeader = document.getElementById('month');
+    const weekdaysHeader = document.getElementById('weekdays-header');
+    
+    // Hide month view and original timeline, show week view container
+    monthDays.style.display = 'none';
+    weekViewContainer.style.display = 'flex';
+    timeline.style.display = 'none';
+    if (weekdaysHeader) weekdaysHeader.style.display = 'none';
     
     // Get the start of the current week (Monday)
     const today = new Date(date);
@@ -213,24 +228,64 @@ async function renderWeekView() {
     const weekEndStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     monthHeader.textContent = `${weekStartStr} - ${weekEndStr}`;
     
+    // Show/hide the "Today" button in week view
+    const todayCheck = new Date();
+    const todayWeekStart = new Date(todayCheck);
+    const todayDay = todayWeekStart.getDay();
+    const todayDiff = todayDay === 0 ? -6 : 1 - todayDay;
+    todayWeekStart.setDate(todayWeekStart.getDate() + todayDiff);
+    todayWeekStart.setHours(0, 0, 0, 0);
+    
+    const isViewingCurrentWeek = weekStart.getTime() === todayWeekStart.getTime();
+    const todayButton = document.getElementById('today-button');
+    if (todayButton) {
+      todayButton.style.display = isViewingCurrentWeek ? 'none' : 'inline-block';
+    }
+    
     // Fetch events for the week
     const startStr = weekStart.toISOString().split('T')[0];
     const endStr = weekEnd.toISOString().split('T')[0];
-    const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .or(`and(event_date.gte.${startStr},event_date.lte.${endStr}),and(recurrence_pattern.neq.NONE,or(recurrence_end_date.is.null,recurrence_end_date.gte.${startStr}))`);
+    const rawEvents = await getEvents(startStr, endStr);
     
-    if (error) {
-        console.error('Error fetching events:', error);
-        return;
+    const expanded = expandRecurringEvents(rawEvents, startStr, endStr);
+    calendarEvents = expanded || [];
+    
+    // First pass: calculate max all-day events across all days
+    let maxAllDayEvents = 0;
+    for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(weekStart);
+        currentDate.setDate(weekStart.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayEvents = calendarEvents.filter(e => e.start_date === dateStr);
+        const allDayCount = dayEvents.filter(e => e.is_all_day).length;
+        maxAllDayEvents = Math.max(maxAllDayEvents, allDayCount);
     }
     
-    calendarEvents = data || [];
-    const expanded = expandRecurringEvents(calendarEvents, weekStart, weekEnd);
+    // Calculate uniform all-day section height (22px per event + 8px padding)
+    const allDaySectionHeight = maxAllDayEvents > 0 ? (maxAllDayEvents * 22) + 8 : 30;
     
-    // Build the week view
-    let days = '';
+    // Calculate heights for alignment
+    const headerHeight = 48; // Observed header height including padding and border (adjusted for alignment)
+    const totalHeaderHeight = headerHeight + allDaySectionHeight;
+    
+    // Build unified grid with timeline and columns together
+    const weekGrid = document.getElementById('week-grid');
+    let gridHtml = '';
+    
+    // Add spacer to push timeline down below headers - make it match the combined header height
+    gridHtml += `<div class="timeline-spacer" style="grid-row: 1; grid-column: 1; height: ${totalHeaderHeight}px; min-height: ${totalHeaderHeight}px;"></div>`;
+    
+    // Add timeline hours to grid (column 1), starting from row 2
+    for (let hour = 0; hour <= 24; hour++) {
+        const displayHour = hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : hour === 24 ? '12am' : `${hour - 12}pm`;
+        gridHtml += `<div class="timeline-hour" style="grid-row: ${hour + 2}; grid-column: 1;">${displayHour}</div>`;
+    }
+    
+    // Add horizontal row dividers (span all columns), starting from row 2
+    for (let row = 2; row <= 26; row++) {
+        gridHtml += `<div class="week-grid-row" style="grid-row: ${row}; grid-column: 1 / -1;"></div>`;
+    }
+    
     for (let i = 0; i < 7; i++) {
         const currentDate = new Date(weekStart);
         currentDate.setDate(weekStart.getDate() + i);
@@ -245,41 +300,136 @@ async function renderWeekView() {
                        currentDate.getFullYear() === todayCheck.getFullYear();
         
         // Filter events for this day
-        const dayEvents = expanded.filter(e => e.event_date === dateStr);
+        const dayEvents = calendarEvents.filter(e => e.start_date === dateStr);
         
-        // Sort events by time
-        dayEvents.sort((a, b) => {
-            const timeA = a.event_time || '00:00';
-            const timeB = b.event_time || '00:00';
+        // Separate all-day and timed events
+        const allDayEvents = dayEvents.filter(e => e.is_all_day);
+        const timedEvents = dayEvents.filter(e => !e.is_all_day);
+        
+        // Sort timed events by start time so earlier events get lower z-index
+        timedEvents.sort((a, b) => {
+            const timeA = a.start_time || '00:00';
+            const timeB = b.start_time || '00:00';
             return timeA.localeCompare(timeB);
         });
         
-        // Build event HTML
-        let eventsHtml = '';
-        for (const evt of dayEvents) {
-            const timeLabel = evt.event_time ? formatTime(evt.event_time) : '';
-            const titleEsc = escapeHtml(evt.event_title || 'Untitled');
-            const allDayClass = evt.event_time ? '' : ' all-day-event';
-            eventsHtml += `
-                <div class="event-item${allDayClass}" 
+        // Build all-day events HTML
+        let allDayHtml = '';
+        allDayEvents.forEach((evt, idx) => {
+            const titleEsc = escapeHtml(evt.title || 'Untitled');
+            const bgColor = evt.color || '#ffbbcf';
+            allDayHtml += `
+                <div class="week-allday-event" 
                      data-event-id="${evt.id}" 
-                     data-event-date="${evt.event_date}"
-                     onclick="openEventDetails(${evt.id}, '${evt.event_date}')">
-                    ${timeLabel ? `<span class="event-time">${timeLabel}</span>` : ''}
+                     data-day="${evt.start_date}"
+                     data-event-idx="${idx}"
+                     style="background-color: ${bgColor}; cursor: pointer;"
+                     title="Click to view details">
                     <span class="event-title">${titleEsc}</span>
                 </div>
             `;
-        }
+        });
         
-        days += `
-            <div class="day-cell${isToday ? ' today' : ''}" data-date="${dateStr}">
-                <div class="day-number">${dayName} ${dayNum}</div>
+        // Build timed event HTML with time-based positioning
+        let eventsHtml = '';
+        
+        // First, calculate positions for all events to detect overlaps
+        const eventPositions = timedEvents.map((evt) => {
+            let top = 0;
+            let height = 50;
+            
+            if (evt.start_time) {
+                const [startHour, startMin] = evt.start_time.split(':').map(Number);
+                top = (startHour * 50) + (startMin * 50 / 60);
+                
+                if (evt.end_time) {
+                    const [endHour, endMin] = evt.end_time.split(':').map(Number);
+                    const endMinutes = (endHour * 60) + endMin;
+                    const startMinutes = (startHour * 60) + startMin;
+                    const durationMinutes = endMinutes - startMinutes;
+                    height = Math.max((durationMinutes * 50 / 60), 20);
+                } else {
+                    height = 50;
+                }
+            }
+            
+            return { top, height, bottom: top + height };
+        });
+        
+        timedEvents.forEach((evt, idx) => {
+            const titleEsc = escapeHtml(evt.title || 'Untitled');
+            const bgColor = evt.color || '#ffbbcf';
+            
+            const { top, height } = eventPositions[idx];
+            
+            // Check for overlaps with earlier events
+            let rightOffset = 4; // Default right padding
+            for (let i = 0; i < idx; i++) {
+                const earlier = eventPositions[i];
+                // Check if this event overlaps with the earlier event
+                if (top < earlier.bottom && (top + height) > earlier.top) {
+                    // Overlap detected - indent this event
+                    rightOffset = 10; // Leave more space to see the earlier event
+                    break;
+                }
+            }
+            
+            const timeLabel = evt.start_time && evt.end_time 
+                ? `${formatTime(evt.start_time)} - ${formatTime(evt.end_time)}` 
+                : evt.start_time 
+                ? formatTime(evt.start_time) 
+                : '';
+            
+            eventsHtml += `
+                <div class="week-event" 
+                     data-event-id="${evt.id}" 
+                     data-day="${evt.start_date}"
+                     data-event-idx="${idx}"
+                     style="top: ${top}px; height: ${height}px; right: ${rightOffset}px; z-index: ${10 + idx}; background-color: ${bgColor}; cursor: pointer;"
+                     title="Click to view details">
+                    ${timeLabel ? `<span class="event-time">${timeLabel}</span> ` : ''}
+                    <span class="event-title">${titleEsc}</span>
+                </div>
+            `;
+        });
+        
+        // Add header and all-day section wrapper as grid item at row 1
+        gridHtml += `
+            <div class="week-day-header-wrapper" style="grid-row: 1; grid-column: ${i + 2};">
+                <div class="week-day-header">
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-number${isToday ? ' today' : ''}">${dayNum}</div>
+                </div>
+                <div class="week-allday-section" style="height: ${allDaySectionHeight}px; min-height: ${allDaySectionHeight}px; max-height: ${allDaySectionHeight}px;">
+                    ${allDayHtml}
+                </div>
+            </div>
+        `;
+        
+        gridHtml += `
+            <div class="week-day-column${isToday ? ' today' : ''}" data-date="${dateStr}" style="grid-row: 2 / 27; grid-column: ${i + 2};">
                 ${eventsHtml}
             </div>
         `;
     }
     
-    monthDays.innerHTML = days;
+    weekGrid.innerHTML = gridHtml;
+    
+    // No need to sync timeline anymore - it's in the same grid
+    
+    // Auto-scroll to 6am (6 hours * 50px = 300px)
+    setTimeout(() => {
+        weekGrid.scrollTop = 300;
+    }, 0);
+    
+    // Save current date to localStorage
+    localStorage.setItem('calendar_date', date.toISOString());
+    
+    // Attach click handlers to all event items after rendering
+    attachEventItemListeners();
+    
+    // Attach click handlers to day cells for creating new events
+    attachDayCellListeners();
 }
 
 async function renderCalendar() {
@@ -291,7 +441,17 @@ async function renderCalendar() {
     date.setDate(1);
 
     const monthDays = document.getElementById('calendar-body');
+    const weekViewContainer = document.getElementById('week-view-container');
     const month = document.getElementById('month');
+    const weekdaysHeader = document.getElementById('weekdays-header');
+    
+    // Show month view, hide week view container
+    monthDays.style.display = 'grid';
+    weekViewContainer.style.display = 'none';
+    
+    // Remove week-view class and show weekdays header for month view
+    monthDays.classList.remove('week-view');
+    if (weekdaysHeader) weekdaysHeader.style.display = 'grid';
 
     const lastDay = new Date(
         date.getFullYear(),
@@ -337,8 +497,27 @@ async function renderCalendar() {
     const today = new Date();
     const todayButton = document.getElementById('today-button');
     if (todayButton) {
-      const isViewingToday = (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear());
-      todayButton.style.display = isViewingToday ? 'none' : 'inline-block';
+      if (currentView === 'week') {
+        // In week view, show if not viewing current week
+        const weekStart = new Date(date);
+        const currentDay = weekStart.getDay();
+        const diff = currentDay === 0 ? -6 : 1 - currentDay;
+        weekStart.setDate(weekStart.getDate() + diff);
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const todayWeekStart = new Date(today);
+        const todayDay = todayWeekStart.getDay();
+        const todayDiff = todayDay === 0 ? -6 : 1 - todayDay;
+        todayWeekStart.setDate(todayWeekStart.getDate() + todayDiff);
+        todayWeekStart.setHours(0, 0, 0, 0);
+        
+        const isViewingCurrentWeek = weekStart.getTime() === todayWeekStart.getTime();
+        todayButton.style.display = isViewingCurrentWeek ? 'none' : 'inline-block';
+      } else {
+        // In month view, show if not viewing today's month/year
+        const isViewingToday = (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear());
+        todayButton.style.display = isViewingToday ? 'none' : 'inline-block';
+      }
     }
 
     // Load events for this month
@@ -412,6 +591,9 @@ async function renderCalendar() {
 
     monthDays.innerHTML = days;
     
+    // Save current date to localStorage
+    localStorage.setItem('calendar_date', date.toISOString());
+    
     // Attach click handlers to all event items after rendering
     attachEventItemListeners();
     
@@ -424,6 +606,9 @@ async function renderCalendar() {
 
 // Calculate and set grid row heights so the entire month grid fits in the window
 function adjustGridRowHeights() {
+  // Skip in week view
+  if (currentView === 'week') return;
+  
   const monthDays = document.getElementById('calendar-body');
   const header = document.getElementById('calendar-header');
   const weekdays = document.getElementById('weekdays-header');
@@ -471,12 +656,17 @@ window.addEventListener('resize', () => {
 
 // Attach click handlers to event items
 function attachEventItemListeners() {
-  document.querySelectorAll('.event-item').forEach(item => {
-    item.addEventListener('click', (e) => {
+  // Handle both month view (.event-item) and week view (.week-event, .week-allday-event) events
+  document.querySelectorAll('.event-item, .week-event, .week-allday-event').forEach(item => {
+    // Remove any existing click handlers by cloning and replacing
+    const newItem = item.cloneNode(true);
+    item.parentNode.replaceChild(newItem, item);
+    
+    newItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      const eventId = item.getAttribute('data-event-id');
-      const dayStr = item.getAttribute('data-day');
-      const eventIdx = item.getAttribute('data-event-idx');
+      const eventId = newItem.getAttribute('data-event-id');
+      const dayStr = newItem.getAttribute('data-day');
+      const eventIdx = newItem.getAttribute('data-event-idx');
       showEventModal(eventId, dayStr, eventIdx);
     });
   });
@@ -536,8 +726,13 @@ function attachDayCellListeners() {
 
 // Show event details modal when an event is clicked
 function showEventModal(eventId, dayStr, eventIdx) {
-  const dayEvents = calendarEvents.filter(ev => ev.start_date === dayStr)
-    .sort((a, b) => {
+  const dayEvents = calendarEvents.filter(ev => ev.start_date === dayStr);
+  
+  // Find event by ID first (most reliable), then fallback to index
+  let event = eventId ? dayEvents.find(e => String(e.id) === String(eventId)) : null;
+  if (!event && eventIdx !== undefined && eventIdx !== null) {
+    // Sort the same way as week view for consistent indexing
+    const sortedEvents = [...dayEvents].sort((a, b) => {
       // All-day events first
       if (a.is_all_day && !b.is_all_day) return -1;
       if (!a.is_all_day && b.is_all_day) return 1;
@@ -546,9 +741,13 @@ function showEventModal(eventId, dayStr, eventIdx) {
       const timeB = b.start_time || '00:00';
       return timeA.localeCompare(timeB);
     });
-  const event = dayEvents[eventIdx];
+    event = sortedEvents[eventIdx];
+  }
   
-  if (!event) return;
+  if (!event) {
+    console.error('Event not found:', { eventId, dayStr, eventIdx, dayEvents });
+    return;
+  }
 
   const modal = document.getElementById('event-detail-modal');
   const timeLabel = formatTime(event.start_time) || 'No time set';
@@ -915,8 +1114,33 @@ function goToToday() {
   renderCalendar();
 }
 
+function handleViewChange() {
+  const selector = document.getElementById('view-selector');
+  const newView = selector.value;
+  
+  if (newView === currentView) return;
+  
+  currentView = newView;
+  
+  // When switching to week view, set date to today to show current week
+  if (currentView === 'week') {
+    date = new Date();
+  }
+  
+  localStorage.setItem('calendar_view', currentView);
+  renderCalendar();
+}
+
 function toggleView() {
+  const previousView = currentView;
   currentView = currentView === 'month' ? 'week' : 'month';
+  
+  // When switching to week view, set date to today to show current week
+  if (currentView === 'week') {
+    date = new Date();
+  }
+  
+  localStorage.setItem('calendar_view', currentView);
   renderCalendar();
 }
 
@@ -1048,6 +1272,12 @@ function initializeCalendar() {
   
   // Initialize the calendar on page load
   renderCalendar();
+  
+  // Set the view selector to match current view
+  const viewSelector = document.getElementById('view-selector');
+  if (viewSelector) {
+    viewSelector.value = currentView;
+  }
 
   // Color palette options (major + lighter variants)
   const colorPalette = [

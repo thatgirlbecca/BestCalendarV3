@@ -30,7 +30,10 @@
 			</div>
 		<div id="header-controls">
 			<button class="open-button" onclick="openForm()">+</button>
-			<button id="view-toggle" class="open-button" onclick="toggleView()" title="Toggle View">📅</button>
+			<select id="view-selector" class="view-selector" onchange="handleViewChange()" title="Change View">
+				<option value="month">Month</option>
+				<option value="week">Week</option>
+			</select>
 			<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
 			<button id="month-prev" class="change-month">&lt;</button>
 			<button id="month-next" class="change-month">&gt;</button>
@@ -178,7 +181,11 @@
 			<div>Fri</div>
 			<div>Sat</div>
 			<div>Sun</div>
-		</div>	
+		</div>
+		<div id="week-view-container" style="display: none;">
+			<div id="timeline"></div>
+			<div id="week-grid"></div>
+		</div>
 		<div id="calendar-body">
 			
 		</div>
