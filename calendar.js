@@ -1,5 +1,6 @@
 let date = new Date();
 let calendarEvents = []; // Store events for the current month view
+let currentView = 'month'; // 'month' or 'week'
 
 // Format a time string ("HH:MM" or "HH:MM:SS") into a human-friendly label
 function formatTime(timeStr) {
@@ -190,7 +191,103 @@ function expandRecurringEvents(events, startDate, endDate) {
   return expanded;
 }
 
+async function renderWeekView() {
+    const monthDays = document.getElementById('calendar-body');
+    const monthHeader = document.getElementById('month');
+    
+    // Get the start of the current week (Monday)
+    const today = new Date(date);
+    const currentDay = today.getDay();
+    const diff = currentDay === 0 ? -6 : 1 - currentDay; // Adjust to Monday
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() + diff);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    // Get the end of the week (Sunday)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    // Update header to show week range
+    const weekStartStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const weekEndStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    monthHeader.textContent = `${weekStartStr} - ${weekEndStr}`;
+    
+    // Fetch events for the week
+    const startStr = weekStart.toISOString().split('T')[0];
+    const endStr = weekEnd.toISOString().split('T')[0];
+    const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .or(`and(event_date.gte.${startStr},event_date.lte.${endStr}),and(recurrence_pattern.neq.NONE,or(recurrence_end_date.is.null,recurrence_end_date.gte.${startStr}))`);
+    
+    if (error) {
+        console.error('Error fetching events:', error);
+        return;
+    }
+    
+    calendarEvents = data || [];
+    const expanded = expandRecurringEvents(calendarEvents, weekStart, weekEnd);
+    
+    // Build the week view
+    let days = '';
+    for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(weekStart);
+        currentDate.setDate(weekStart.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNum = currentDate.getDate();
+        
+        // Check if it's today
+        const todayCheck = new Date();
+        const isToday = currentDate.getDate() === todayCheck.getDate() &&
+                       currentDate.getMonth() === todayCheck.getMonth() &&
+                       currentDate.getFullYear() === todayCheck.getFullYear();
+        
+        // Filter events for this day
+        const dayEvents = expanded.filter(e => e.event_date === dateStr);
+        
+        // Sort events by time
+        dayEvents.sort((a, b) => {
+            const timeA = a.event_time || '00:00';
+            const timeB = b.event_time || '00:00';
+            return timeA.localeCompare(timeB);
+        });
+        
+        // Build event HTML
+        let eventsHtml = '';
+        for (const evt of dayEvents) {
+            const timeLabel = evt.event_time ? formatTime(evt.event_time) : '';
+            const titleEsc = escapeHtml(evt.event_title || 'Untitled');
+            const allDayClass = evt.event_time ? '' : ' all-day-event';
+            eventsHtml += `
+                <div class="event-item${allDayClass}" 
+                     data-event-id="${evt.id}" 
+                     data-event-date="${evt.event_date}"
+                     onclick="openEventDetails(${evt.id}, '${evt.event_date}')">
+                    ${timeLabel ? `<span class="event-time">${timeLabel}</span>` : ''}
+                    <span class="event-title">${titleEsc}</span>
+                </div>
+            `;
+        }
+        
+        days += `
+            <div class="day-cell${isToday ? ' today' : ''}" data-date="${dateStr}">
+                <div class="day-number">${dayName} ${dayNum}</div>
+                ${eventsHtml}
+            </div>
+        `;
+    }
+    
+    monthDays.innerHTML = days;
+}
+
 async function renderCalendar() {
+    if (currentView === 'week') {
+        await renderWeekView();
+        return;
+    }
+    
     date.setDate(1);
 
     const monthDays = document.getElementById('calendar-body');
@@ -790,7 +887,11 @@ async function deleteEventFromForm() {
 document.getElementById('month-prev').addEventListener('click', () => {
     document.getElementById('calendar-body').classList.add('fade-out');
     setTimeout(() => {
-        date.setMonth(date.getMonth() - 1);
+        if (currentView === 'week') {
+            date.setDate(date.getDate() - 7);
+        } else {
+            date.setMonth(date.getMonth() - 1);
+        }
         renderCalendar();
         document.getElementById('calendar-body').classList.remove('fade-out');
     }, 500);
@@ -799,7 +900,11 @@ document.getElementById('month-prev').addEventListener('click', () => {
 document.getElementById('month-next').addEventListener('click', () => {
     document.getElementById('calendar-body').classList.add('fade-out');
     setTimeout(() => {
-        date.setMonth(date.getMonth() + 1);
+        if (currentView === 'week') {
+            date.setDate(date.getDate() + 7);
+        } else {
+            date.setMonth(date.getMonth() + 1);
+        }
         renderCalendar();
         document.getElementById('calendar-body').classList.remove('fade-out');
     }, 500);
@@ -807,6 +912,11 @@ document.getElementById('month-next').addEventListener('click', () => {
 
 function goToToday() {
   date = new Date();
+  renderCalendar();
+}
+
+function toggleView() {
+  currentView = currentView === 'month' ? 'week' : 'month';
   renderCalendar();
 }
 
