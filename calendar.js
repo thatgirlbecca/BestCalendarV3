@@ -61,7 +61,6 @@ function expandRecurringEvents(events, startDate, endDate) {
       // Map getDay() (0=Sun, 1=Mon, ..., 6=Sat) to day names
       const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
       const allowedDays = JSON.parse(ev.recurrence_days);
-      console.log('Expanding custom event, start_date:', ev.start_date, 'allowed days:', allowedDays);
       
       // Start from beginning of the week containing evStart (Monday-based week)
       let weekStart = new Date(evStart);
@@ -84,8 +83,6 @@ function expandRecurringEvents(events, startDate, endDate) {
           const startStr = start.toISOString().split('T')[0];
           const endStr = end.toISOString().split('T')[0];
           const inRange = checkDateStr >= startStr && checkDateStr >= evStartStr && checkDateStr <= endStr;
-          
-          console.log(`${checkDateStr}: getDay()=${checkDate.getDay()}, dayName=${dayName}, allowed=${allowedDays.includes(dayName)}, inRange=${inRange}`);
           
           if (allowedDays.includes(dayName) && inRange) {
             const occurrence = {
@@ -255,16 +252,12 @@ async function renderCalendar() {
         lastDayOfMonth.toISOString().split('T')[0]
     );
     
-    console.log('Raw events fetched:', rawEvents);
-    
     // Expand recurring events into individual occurrences
     calendarEvents = expandRecurringEvents(
         rawEvents,
         firstDay.toISOString().split('T')[0],
         lastDayOfMonth.toISOString().split('T')[0]
     );
-    
-    console.log('Expanded events:', calendarEvents);
 
     let days = '';
 
@@ -937,15 +930,11 @@ let calendarInitialized = false;
 
 // Separate initialization function that can be called after login
 function initializeCalendar() {
-  console.log('initializeCalendar() called');
-  
   if (calendarInitialized) {
-    console.log('Calendar already initialized, skipping...');
     return;
   }
   
   calendarInitialized = true;
-  console.log('Initializing calendar for the first time');
   
   // Initialize the calendar on page load
   renderCalendar();
@@ -1014,7 +1003,6 @@ function initializeCalendar() {
 
   // Subscribe to real-time updates
   subscribeToChanges((payload) => {
-    console.log('Calendar updated!', payload);
     renderCalendar();
   });
 
@@ -1093,17 +1081,13 @@ function initializeCalendar() {
 
   // Wire up the event form
   const form = document.querySelector('#event-form');
-  console.log('Looking for event form element:', form);
   if (form) {
-    console.log('Event form found, attaching submit listener');
-    
     // Remove any existing listeners first to prevent duplicates
     const oldForm = form.cloneNode(true);
     form.parentNode.replaceChild(oldForm, form);
     
     oldForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      console.log('Event form submitted! Processing event...');
 
       const title = document.getElementById('event-title')?.value?.trim();
       const eventDate = document.getElementById('event-date')?.value; // YYYY-MM-DD
