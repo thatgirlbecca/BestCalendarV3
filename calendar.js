@@ -1079,13 +1079,13 @@ function initializeCalendar() {
   }
 
   // Wire up the event form
-  const form = document.querySelector('form');
-  console.log('Looking for form element:', form);
+  const form = document.querySelector('#event-form');
+  console.log('Looking for event form element:', form);
   if (form) {
-    console.log('Form found, attaching submit listener');
+    console.log('Event form found, attaching submit listener');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      console.log('Form submitted! Processing event...');
+      console.log('Event form submitted! Processing event...');
 
       const title = document.getElementById('event-title')?.value?.trim();
       const eventDate = document.getElementById('event-date')?.value; // YYYY-MM-DD
