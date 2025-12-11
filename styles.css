@@ -273,7 +273,7 @@ body {
 #week-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: 60px repeat(7, 1fr);
+    grid-template-columns: 60px repeat(7, minmax(0, 1fr));
     grid-template-rows: auto repeat(25, 50px);
     gap: 0;
     width: 100%;
@@ -396,6 +396,25 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Hide end time on smaller screens in week view */
+@media (max-width: 1024px) {
+    #week-grid .week-event .event-end-time {
+        display: none;
+    }
+    
+    #week-grid .week-event {
+        font-size: 0.75em;
+    }
+    
+    #week-grid .week-event .event-time {
+        font-size: 0.85em;
+    }
+    
+    #week-grid .week-event .event-title {
+        font-size: 0.9em;
+    }
 }
 
 #calendar-body.week-view {

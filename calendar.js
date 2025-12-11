@@ -375,7 +375,7 @@ async function renderWeekView() {
             }
             
             const timeLabel = evt.start_time && evt.end_time 
-                ? `${formatTime(evt.start_time)} - ${formatTime(evt.end_time)}` 
+                ? `${formatTime(evt.start_time)}<span class="event-end-time"> - ${formatTime(evt.end_time)}</span>` 
                 : evt.start_time 
                 ? formatTime(evt.start_time) 
                 : '';
@@ -657,7 +657,8 @@ window.addEventListener('resize', () => {
 // Attach click handlers to event items
 function attachEventItemListeners() {
   // Handle both month view (.event-item) and week view (.week-event, .week-allday-event) events
-  document.querySelectorAll('.event-item, .week-event, .week-allday-event').forEach(item => {
+  // Exclude elements inside modals to prevent interfering with form controls
+  document.querySelectorAll('#calendar-body .event-item, #week-grid .week-event, #week-grid .week-allday-event').forEach(item => {
     // Remove any existing click handlers by cloning and replacing
     const newItem = item.cloneNode(true);
     item.parentNode.replaceChild(newItem, item);
@@ -1333,12 +1334,17 @@ function initializeCalendar() {
       colorToggleBtn.setAttribute('aria-expanded', (!isOpen).toString());
     });
 
-    document.addEventListener('click', (e) => {
+    // Use a named function so we can properly manage this listener
+    const closeColorPickerOnOutsideClick = (e) => {
       if (!colorOptionsEl.contains(e.target) && e.target !== colorToggleBtn) {
         colorOptionsEl.classList.add('hidden');
         colorToggleBtn.setAttribute('aria-expanded', 'false');
       }
-    });
+    };
+    
+    // Remove any existing listener first to prevent duplicates
+    document.removeEventListener('click', closeColorPickerOnOutsideClick);
+    document.addEventListener('click', closeColorPickerOnOutsideClick);
   }
 
   // Subscribe to real-time updates
@@ -1349,16 +1355,21 @@ function initializeCalendar() {
   // Toggle end-time input visibility based on checkbox
   const addEndTimeCheckbox = document.getElementById('add-end-time');
   const endTimeContainer = document.getElementById('end-time-container');
-  if (addEndTimeCheckbox) {
-    addEndTimeCheckbox.addEventListener('change', () => {
-      if (endTimeContainer) {
-        endTimeContainer.style.display = addEndTimeCheckbox.checked ? 'block' : 'none';
-        const endTimeInput = document.getElementById('event-end-time');
-        if (endTimeInput && !addEndTimeCheckbox.checked) {
-          endTimeInput.value = ''; // Clear end time when unchecked
-        }
+  if (addEndTimeCheckbox && endTimeContainer) {
+    const handleEndTimeChange = () => {
+      endTimeContainer.style.display = addEndTimeCheckbox.checked ? 'block' : 'none';
+      const endTimeInput = document.getElementById('event-end-time');
+      if (endTimeInput && !addEndTimeCheckbox.checked) {
+        endTimeInput.value = ''; // Clear end time when unchecked
       }
-    });
+    };
+    
+    // Store the handler on the element so we can remove it later
+    if (addEndTimeCheckbox._changeHandler) {
+      addEndTimeCheckbox.removeEventListener('change', addEndTimeCheckbox._changeHandler);
+    }
+    addEndTimeCheckbox._changeHandler = handleEndTimeChange;
+    addEndTimeCheckbox.addEventListener('change', handleEndTimeChange);
   }
 
   // Handle repeat event checkbox and recurrence UI
@@ -1369,13 +1380,20 @@ function initializeCalendar() {
   const intervalLabel = document.getElementById('interval-label');
   
   if (repeatCheckbox && recurrenceContainer) {
-    repeatCheckbox.addEventListener('change', () => {
+    const handleRepeatChange = () => {
       recurrenceContainer.style.display = repeatCheckbox.checked ? 'block' : 'none';
       if (!repeatCheckbox.checked) {
         if (recurrencePattern) recurrencePattern.value = '';
         if (customDaysContainer) customDaysContainer.style.display = 'none';
       }
-    });
+    };
+    
+    // Store the handler on the element so we can remove it later
+    if (repeatCheckbox._changeHandler) {
+      repeatCheckbox.removeEventListener('change', repeatCheckbox._changeHandler);
+    }
+    repeatCheckbox._changeHandler = handleRepeatChange;
+    repeatCheckbox.addEventListener('change', handleRepeatChange);
   }
   
   const nthWeekdayContainer = document.getElementById('nth-weekday-container');
@@ -1421,13 +1439,17 @@ function initializeCalendar() {
 
   // Wire up the event form
   const form = document.querySelector('#event-form');
-  if (form) {
-    // Remove any existing listeners first to prevent duplicates
-    const oldForm = form.cloneNode(true);
-    form.parentNode.replaceChild(oldForm, form);
+  console.log('Looking for form:', form);
+  console.log('Form already has handler?', form?._submitHandlerAttached);
+  
+  if (form && !form._submitHandlerAttached) {
+    console.log('Attaching submit handler to form');
+    form._submitHandlerAttached = true;
     
-    oldForm.addEventListener('submit', async (e) => {
+    const handleFormSubmit = async (e) => {
+      console.log('Form submit handler called - preventing default');
       e.preventDefault();
+      e.stopPropagation();
 
       const title = document.getElementById('event-title')?.value?.trim();
       const eventDate = document.getElementById('event-date')?.value; // YYYY-MM-DD
@@ -1553,7 +1575,9 @@ function initializeCalendar() {
         console.error('Error creating/updating event:', err);
         alert('Error creating/updating event. See console.');
       }
-    });
+    };
+    
+    form.addEventListener('submit', handleFormSubmit);
   }
 
   // Close modal when clicking outside it
