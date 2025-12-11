@@ -85,7 +85,7 @@ body {
 
 /* Logout Button */
 .logout-button {
-    padding: 6px 10px;
+    padding: 2px 9px;
     background-color: #555;
     border: 1px solid #111111;
     color: #ffffff;
@@ -155,6 +155,29 @@ body {
         margin-left: 0;
         justify-content: center;
         flex-wrap: wrap;
+    }
+    
+    /* Hide event times on mobile */
+    #calendar-body div.day-cell .event-item .event-time {
+        display: none;
+    }
+    
+    /* Adjust event title for mobile when time is hidden */
+    #calendar-body div.day-cell .event-item .event-title {
+        flex: 1 1 auto;
+        max-width: 100%;
+        text-align: center;
+        font-size: 0.85em;
+    }
+    
+    /* Shrink text sizes for better readability on mobile */
+    #calendar-body div.day-cell .day-number {
+        font-size: 0.9em;
+    }
+    
+    #calendar-body div.day-cell .event-item {
+        font-size: 0.8em;
+        padding: 4px 8px;
     }
 }
 
@@ -351,7 +374,7 @@ body {
 }
 
 .change-month {
-    padding: 10px 20px;
+    padding: 4px 12px;
     font-size: 15px;
     border: none;
     background: #FF4F91;
