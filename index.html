@@ -25,9 +25,16 @@
 
 	<div id="calendar" style="display: none;">
 		<div id="calendar-header">
-            <button class="open-button" onclick="openForm()">+</button>
-			<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
-			<h1 id="month">November 2025</h1>
+			<div id="header-top">
+				<h1 id="month">November 2025</h1>
+			</div>
+			<div id="header-controls">
+				<button class="open-button" onclick="openForm()">+</button>
+				<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
+				<button id="month-prev" class="change-month">&lt;</button>
+				<button id="month-next" class="change-month">&gt;</button>
+				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⏻</button>
+			</div>
 			<div id="month-year-picker" class="hidden" aria-hidden="true">
 				<label for="year-select">Year</label>
 				<select id="year-select"></select>
@@ -37,11 +44,6 @@
 					<button id="picker-go" class="btn">Go</button>
 					<button id="picker-cancel" class="btn cancel">Cancel</button>
 				</div>
-			</div>
-			<div id="month-controls">
-				<button id="month-prev" class="change-month">&lt;</button>
-				<button id="month-next" class="change-month">&gt;</button>
-				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⏻</button>
 			</div>
         </div>
 		<form id="event-form">

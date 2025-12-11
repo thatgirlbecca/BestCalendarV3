@@ -111,23 +111,54 @@ body {
 
 #calendar-header {
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px; /* slightly reduced to save vertical space */
+    padding: 8px 10px;
     background-color: #111111;
     color: #FF4F91;
     flex: 0 0 auto;
-}
-
-/* Positioning for centered month title with controls on right */
-#calendar-header {
     position: relative;
 }
 
-#month {
+#header-top {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+}
+
+#header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Mobile layout - stacked rows */
+@media (max-width: 767px) {
+    #calendar-header {
+        flex-direction: column;
+        justify-content: center;
+        position: static;
+    }
+    
+    #header-top {
+        position: static;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+        display: flex;
+    }
+    
+    #header-controls {
+        margin-top: 8px;
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+#month {
     margin: 0;
 }
 
