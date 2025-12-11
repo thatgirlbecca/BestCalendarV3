@@ -165,16 +165,18 @@ body {
     /* Adjust event title for mobile when time is hidden */
     #calendar-body div.day-cell .event-item .event-title {
         flex: 1 1 auto !important;
-        max-width: none !important;
+        max-width: 100% !important;
+        width: 100% !important;
         text-align: left !important;
-        font-size: 0.75em !important;
+        font-size: 0.7em !important;
         white-space: normal !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
-        line-height: 1.2 !important;
+        line-height: 1.15 !important;
+        word-break: break-word !important;
     }
     
     /* Shrink text sizes for better readability on mobile */
@@ -183,11 +185,13 @@ body {
     }
     
     #calendar-body div.day-cell .event-item {
-        font-size: 0.75em !important;
-        padding: 3px 6px !important;
+        font-size: 0.7em !important;
+        padding: 3px 5px !important;
         justify-content: flex-start !important;
-        max-height: 2.8em !important;
-        line-height: 1.2 !important;
+        max-height: 2.6em !important;
+        line-height: 1.15 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 }
 
