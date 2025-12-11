@@ -1096,7 +1096,12 @@ function initializeCalendar() {
   console.log('Looking for event form element:', form);
   if (form) {
     console.log('Event form found, attaching submit listener');
-    form.addEventListener('submit', async (e) => {
+    
+    // Remove any existing listeners first to prevent duplicates
+    const oldForm = form.cloneNode(true);
+    form.parentNode.replaceChild(oldForm, form);
+    
+    oldForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       console.log('Event form submitted! Processing event...');
 
@@ -1210,7 +1215,7 @@ function initializeCalendar() {
             document.getElementById('event-description').value = '';
             document.getElementById('event-location').value = '';
             if (addEndTimeCheckbox) addEndTimeCheckbox.checked = false;
-            if (endTimeContainer) endTimeContainer.style.display = 'none';
+            if (endTimeContainer) endTimeContainer.style.display = 'none';2018-12-11
             document.getElementById('event-end-time').value = '';
             const colorInput = document.getElementById('event-color');
             const colorPreview = document.getElementById('color-preview');
