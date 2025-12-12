@@ -31,6 +31,89 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Format recurrence pattern into human-readable text
+function formatRecurrencePattern(event) {
+  if (!event.recurrence_rule || event.recurrence_rule === 'NONE' || event.recurrence_rule === '') {
+    return null;
+  }
+  
+  const interval = event.recurrence_interval || 1;
+  const rule = event.recurrence_rule;
+  
+  let pattern = '';
+  
+  switch (rule) {
+    case 'DAILY':
+      pattern = interval === 1 ? 'Every day' : `Every ${interval} days`;
+      break;
+    case 'WEEKLY':
+      pattern = interval === 1 ? 'Every week' : `Every ${interval} weeks`;
+      break;
+    case 'MONTHLY':
+      pattern = interval === 1 ? 'Every month' : `Every ${interval} months`;
+      break;
+    case 'YEARLY':
+      pattern = interval === 1 ? 'Every year' : `Every ${interval} years`;
+      break;
+    case 'CUSTOM_DAYS':
+      if (event.recurrence_days) {
+        try {
+          const days = JSON.parse(event.recurrence_days);
+          const dayNames = {
+            'MON': 'Monday',
+            'TUE': 'Tuesday',
+            'WED': 'Wednesday',
+            'THU': 'Thursday',
+            'FRI': 'Friday',
+            'SAT': 'Saturday',
+            'SUN': 'Sunday'
+          };
+          const dayList = days.map(d => dayNames[d] || d).join(', ');
+          pattern = interval === 1 ? `Every ${dayList}` : `Every ${interval} weeks on ${dayList}`;
+        } catch (e) {
+          pattern = 'Custom days';
+        }
+      } else {
+        pattern = 'Custom days';
+      }
+      break;
+    case 'MONTHLY_NTH':
+      if (event.nth_week && event.nth_weekday) {
+        const weekNames = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th', '-1': 'last' };
+        const dayNames = {
+          'MON': 'Monday',
+          'TUE': 'Tuesday',
+          'WED': 'Wednesday',
+          'THU': 'Thursday',
+          'FRI': 'Friday',
+          'SAT': 'Saturday',
+          'SUN': 'Sunday'
+        };
+        const week = weekNames[event.nth_week] || event.nth_week;
+        const day = dayNames[event.nth_weekday] || event.nth_weekday;
+        pattern = interval === 1 
+          ? `Every ${week} ${day} of the month` 
+          : `Every ${interval} months on the ${week} ${day}`;
+      } else {
+        pattern = 'Monthly on specific weekday';
+      }
+      break;
+    default:
+      pattern = 'Repeating event';
+  }
+  
+  // Add end date or count if present
+  if (event.recurrence_end_date) {
+    const endDate = new Date(event.recurrence_end_date);
+    const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    pattern += ` (until ${endStr})`;
+  } else if (event.recurrence_count) {
+    pattern += ` (${event.recurrence_count} times)`;
+  }
+  
+  return pattern;
+}
+
 // Expand recurring events into individual occurrences for the given date range
 function expandRecurringEvents(events, startDate, endDate) {
   const expanded = [];
@@ -91,7 +174,10 @@ function expandRecurringEvents(events, startDate, endDate) {
           const endStr = end.toISOString().split('T')[0];
           const inRange = checkDateStr >= startStr && checkDateStr >= evStartStr && checkDateStr <= endStr;
           
-          if (allowedDays.includes(dayName) && inRange) {
+          // Check if this date is excluded
+          const isExcluded = ev.excluded_dates && Array.isArray(ev.excluded_dates) && ev.excluded_dates.includes(checkDateStr);
+          
+          if (allowedDays.includes(dayName) && inRange && !isExcluded) {
             const occurrence = {
               ...ev,
               start_date: checkDateStr,
@@ -142,7 +228,10 @@ function expandRecurringEvents(events, startDate, endDate) {
           const startStr = start.toISOString().split('T')[0];
           const endStr = end.toISOString().split('T')[0];
           
-          if (targetDateStr >= startStr && targetDateStr <= endStr && targetDate >= evStart) {
+          // Check if this date is excluded
+          const isExcluded = ev.excluded_dates && Array.isArray(ev.excluded_dates) && ev.excluded_dates.includes(targetDateStr);
+          
+          if (targetDateStr >= startStr && targetDateStr <= endStr && targetDate >= evStart && !isExcluded) {
             const occurrence = {
               ...ev,
               start_date: targetDateStr,
@@ -161,11 +250,14 @@ function expandRecurringEvents(events, startDate, endDate) {
     } else {
       // Handle DAILY, WEEKLY, MONTHLY, YEARLY
       while (current <= maxDate && count < maxCount) {
-        if (current >= start && current <= end) {
+        const currentDateStr = current.toISOString().split('T')[0];
+        const isExcluded = ev.excluded_dates && Array.isArray(ev.excluded_dates) && ev.excluded_dates.includes(currentDateStr);
+        
+        if (current >= start && current <= end && !isExcluded) {
           const occurrence = {
             ...ev,
-            start_date: current.toISOString().split('T')[0],
-            end_date: current.toISOString().split('T')[0],
+            start_date: currentDateStr,
+            end_date: currentDateStr,
             is_recurring_instance: true,
             original_event_id: ev.id
           };
@@ -256,7 +348,11 @@ async function renderWeekView() {
         const currentDate = new Date(weekStart);
         currentDate.setDate(weekStart.getDate() + i);
         const dateStr = currentDate.toISOString().split('T')[0];
-        const dayEvents = calendarEvents.filter(e => e.start_date === dateStr);
+        const dayEvents = calendarEvents.filter(e => {
+          const evStart = e.start_date;
+          const evEnd = e.end_date || e.start_date;
+          return dateStr >= evStart && dateStr <= evEnd;
+        });
         const allDayCount = dayEvents.filter(e => e.is_all_day).length;
         maxAllDayEvents = Math.max(maxAllDayEvents, allDayCount);
     }
@@ -299,17 +395,49 @@ async function renderWeekView() {
                        currentDate.getMonth() === todayCheck.getMonth() &&
                        currentDate.getFullYear() === todayCheck.getFullYear();
         
-        // Filter events for this day
-        const dayEvents = calendarEvents.filter(e => e.start_date === dateStr);
+        // Filter events for this day - includes multi-day events that span this date
+        const dayEvents = calendarEvents.filter(e => {
+          const evStart = e.start_date;
+          const evEnd = e.end_date || e.start_date;
+          return dateStr >= evStart && dateStr <= evEnd;
+        });
         
-        // Separate all-day and timed events
-        const allDayEvents = dayEvents.filter(e => e.is_all_day);
-        const timedEvents = dayEvents.filter(e => !e.is_all_day);
+        // Separate all-day and timed events, considering multi-day logic
+        const processedEvents = dayEvents.map(e => {
+          const evStart = e.start_date;
+          const evEnd = e.end_date || e.start_date;
+          const isMultiDay = evStart !== evEnd;
+          const isFirstDay = dateStr === evStart;
+          const isLastDay = dateStr === evEnd;
+          
+          // For multi-day events: middle days become all-day
+          let effectiveIsAllDay = e.is_all_day;
+          let effectiveStartTime = e.start_time;
+          let effectiveEndTime = e.end_time;
+          
+          if (isMultiDay && !isFirstDay && !isLastDay) {
+            // Middle day of multi-day event: treat as all-day
+            effectiveIsAllDay = true;
+            effectiveStartTime = null;
+            effectiveEndTime = null;
+          } else if (isMultiDay && isFirstDay) {
+            // First day: keep start time, ignore end time
+            effectiveEndTime = null;
+          } else if (isMultiDay && isLastDay) {
+            // Last day: start at midnight, use end time
+            effectiveStartTime = '00:00';
+          }
+          
+          return { ...e, effectiveIsAllDay, effectiveStartTime, effectiveEndTime };
+        });
+        
+        const allDayEvents = processedEvents.filter(e => e.effectiveIsAllDay);
+        const timedEvents = processedEvents.filter(e => !e.effectiveIsAllDay);
         
         // Sort timed events by start time so earlier events get lower z-index
         timedEvents.sort((a, b) => {
-            const timeA = a.start_time || '00:00';
-            const timeB = b.start_time || '00:00';
+            const timeA = a.effectiveStartTime || '00:00';
+            const timeB = b.effectiveStartTime || '00:00';
             return timeA.localeCompare(timeB);
         });
         
@@ -338,12 +466,12 @@ async function renderWeekView() {
             let top = 0;
             let height = 50;
             
-            if (evt.start_time) {
-                const [startHour, startMin] = evt.start_time.split(':').map(Number);
+            if (evt.effectiveStartTime) {
+                const [startHour, startMin] = evt.effectiveStartTime.split(':').map(Number);
                 top = (startHour * 50) + (startMin * 50 / 60);
                 
-                if (evt.end_time) {
-                    const [endHour, endMin] = evt.end_time.split(':').map(Number);
+                if (evt.effectiveEndTime) {
+                    const [endHour, endMin] = evt.effectiveEndTime.split(':').map(Number);
                     const endMinutes = (endHour * 60) + endMin;
                     const startMinutes = (startHour * 60) + startMin;
                     const durationMinutes = endMinutes - startMinutes;
@@ -374,10 +502,10 @@ async function renderWeekView() {
                 }
             }
             
-            const timeLabel = evt.start_time && evt.end_time 
-                ? `${formatTime(evt.start_time)}<span class="event-end-time"> - ${formatTime(evt.end_time)}</span>` 
-                : evt.start_time 
-                ? formatTime(evt.start_time) 
+            const timeLabel = evt.effectiveStartTime && evt.effectiveEndTime 
+                ? `${formatTime(evt.effectiveStartTime)}<span class="event-end-time"> - ${formatTime(evt.effectiveEndTime)}</span>` 
+                : evt.effectiveStartTime 
+                ? formatTime(evt.effectiveStartTime) 
                 : '';
             
             eventsHtml += `
@@ -546,9 +674,12 @@ async function renderCalendar() {
         const currentDate = new Date(date.getFullYear(), date.getMonth(), i);
         const dateStr = currentDate.toISOString().split('T')[0];
         
-        // Get events for this specific day and sort by start time (all-day events first, then by time)
-        const dayEvents = calendarEvents.filter(ev => ev.start_date === dateStr)
-          .sort((a, b) => {
+        // Get events for this specific day - includes multi-day events that span this date
+        const dayEvents = calendarEvents.filter(ev => {
+          const evStart = ev.start_date;
+          const evEnd = ev.end_date || ev.start_date;
+          return dateStr >= evStart && dateStr <= evEnd;
+        }).sort((a, b) => {
             // All-day events first
             if (a.is_all_day && !b.is_all_day) return -1;
             if (!a.is_all_day && b.is_all_day) return 1;
@@ -558,11 +689,38 @@ async function renderCalendar() {
             return timeA.localeCompare(timeB);
           });
         const eventsHtml = dayEvents.map((ev, idx) => {
-          const isAllDay = !!ev.is_all_day;
+          const evStart = ev.start_date;
+          const evEnd = ev.end_date || ev.start_date;
+          const isMultiDay = evStart !== evEnd;
+          const isFirstDay = dateStr === evStart;
+          const isLastDay = dateStr === evEnd;
+          
+          // For multi-day events: only show start time on first day, end time on last day
+          let isAllDay = !!ev.is_all_day;
+          let timeLabel = '';
+          
+          if (isMultiDay) {
+            // Multi-day event
+            if (isFirstDay && ev.start_time) {
+              // First day: show start time
+              timeLabel = formatTime(ev.start_time);
+            } else if (isLastDay && ev.end_time) {
+              // Last day: show end time
+              timeLabel = formatTime(ev.end_time);
+            } else {
+              // Middle days: treat as all-day
+              isAllDay = true;
+            }
+          } else {
+            // Single day event: use original logic
+            if (!isAllDay && ev.start_time) {
+              timeLabel = formatTime(ev.start_time);
+            }
+          }
+          
           const classNames = ['event-item'];
           if (isAllDay) classNames.push('all-day-event');
           const bgColor = ev.color || ev.event_color || '#ffbbcf';
-          const timeLabel = formatTime(ev.start_time);
           const timeHtml = timeLabel ? `<span class="event-time">${timeLabel}</span>` : '';
           const titleText = ev.title || '';
           const titleHtml = `<span class="event-title">${titleText}</span>`;
@@ -752,15 +910,32 @@ function showEventModal(eventId, dayStr, eventIdx) {
 
   const modal = document.getElementById('event-detail-modal');
   const timeLabel = formatTime(event.start_time) || 'No time set';
-  const dateObj = new Date(dayStr);
+  
+  // Parse date string to avoid timezone issues
+  const [year, month, day] = dayStr.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day); // month is 0-indexed
   const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
+  // Determine if this is a recurring event instance
+  const isRecurringInstance = event.is_recurring_instance || (event.recurrence_rule && event.recurrence_rule !== 'NONE' && event.recurrence_rule !== '');
+  const deleteHandler = isRecurringInstance 
+    ? `handleRecurringEventDelete('${escapeHtml(String(event.original_event_id || event.id))}', '${dayStr}')`
+    : `deleteEventFromModal('${escapeHtml(String(event.id))}')`;
+  
+  // Get recurrence pattern text if this is a recurring event
+  let recurrencePattern = null;
+  try {
+    recurrencePattern = formatRecurrencePattern(event);
+  } catch (e) {
+    console.error('Error formatting recurrence pattern:', e);
+  }
+  
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
         <h2 class="modal-title">${escapeHtml(event.title || 'Event')}</h2>
         <div>
-          <button class="modal-delete" onclick="deleteEventFromModal('${escapeHtml(String(event.id))}')">🗑</button>
+          <button class="modal-delete" onclick="${deleteHandler}">🗑</button>
           <button class="modal-duplicate" onclick="duplicateEvent('${escapeHtml(String(event.id))}','${dayStr}','${eventIdx}')">🗍</button>
           <button class="modal-edit" onclick="startEditEvent('${escapeHtml(String(event.id))}','${dayStr}','${eventIdx}')">✎</button>
           <button class="modal-close" onclick="closeEventModal()">&times;</button>
@@ -770,26 +945,35 @@ function showEventModal(eventId, dayStr, eventIdx) {
         <div class="modal-field-label">Date</div>
         <div class="modal-field-value">${dateStr}</div>
       </div>
-      <div class="modal-field">
-        <div class="modal-field-label">Start Time</div>
-        <div class="modal-field-value">${timeLabel}</div>
+      <div class="modal-field modal-time-row">
+        <div class="modal-time-field">
+          <div class="modal-field-label">Start Time</div>
+          <div class="modal-field-value">${timeLabel}</div>
+        </div>
+        ${event.end_time ? `
+        <span class="modal-time-separator">-</span>
+        <div class="modal-time-field">
+          <div class="modal-field-label">End Time</div>
+          <div class="modal-field-value">${formatTime(event.end_time)}</div>
+        </div>
+        ` : ''}
       </div>
-      ${event.end_time ? `
+      ${recurrencePattern ? `
       <div class="modal-field">
-        <div class="modal-field-label">End Time</div>
-        <div class="modal-field-value">${formatTime(event.end_time)}</div>
-      </div>
-      ` : ''}
-      ${event.description ? `
-      <div class="modal-field">
-        <div class="modal-field-label">Description</div>
-        <div class="modal-field-value">${escapeHtml(event.description)}</div>
+        <div class="modal-field-label">Repeats</div>
+        <div class="modal-field-value">🔁 ${escapeHtml(recurrencePattern)}</div>
       </div>
       ` : ''}
       ${event.location ? `
       <div class="modal-field">
         <div class="modal-field-label">Location</div>
         <div class="modal-field-value">${escapeHtml(event.location)}</div>
+      </div>
+      ` : ''}
+      ${event.description ? `
+      <div class="modal-field">
+        <div class="modal-field-label">Description</div>
+        <div class="modal-field-value">${escapeHtml(event.description)}</div>
       </div>
       ` : ''}
     </div>
@@ -810,6 +994,7 @@ function startEditEvent(eventId, dayStr, eventIdx) {
   // Populate form fields
   document.getElementById('event-title').value = ev.title || '';
   document.getElementById('event-date').value = ev.start_date || '';
+  document.getElementById('event-end-date').value = ev.end_date || ev.start_date || '';
   document.getElementById('event-time').value = ev.start_time ? (ev.start_time.slice(0,5)) : '';
   document.getElementById('event-description').value = ev.description || '';
   document.getElementById('event-location').value = ev.location || '';
@@ -932,6 +1117,7 @@ function duplicateEvent(eventId, dayStr, eventIdx) {
   // Pre-fill form fields (same as startEditEvent but clear date and editing ID)
   document.getElementById('event-title').value = ev.title || '';
   document.getElementById('event-date').value = ''; // Clear date so user picks a new one
+  document.getElementById('event-end-date').value = ''; // Clear end date too
   document.getElementById('event-time').value = ev.start_time ? (ev.start_time.slice(0,5)) : '';
   document.getElementById('event-description').value = ev.description || '';
   document.getElementById('event-location').value = ev.location || '';
@@ -1058,6 +1244,69 @@ async function deleteEventFromModal(eventId) {
   }
 }
 
+// Handle deletion of a recurring event instance
+let pendingRecurringDelete = null;
+
+async function handleRecurringEventDelete(eventId, occurrenceDate) {
+  // Store the pending delete info
+  pendingRecurringDelete = { eventId, occurrenceDate };
+  
+  // Show the custom dialog
+  document.getElementById('recurring-delete-dialog').style.display = 'flex';
+}
+
+// User chose to delete only this occurrence
+async function confirmDeleteSingleOccurrence() {
+  if (!pendingRecurringDelete) return;
+  
+  const { eventId, occurrenceDate } = pendingRecurringDelete;
+  document.getElementById('recurring-delete-dialog').style.display = 'none';
+  
+  try {
+    const success = await addRecurringEventException(eventId, occurrenceDate);
+    if (success) {
+      closeEventModal();
+      await renderCalendar();
+    } else {
+      alert('Failed to delete this occurrence. See console for details.');
+    }
+  } catch (err) {
+    console.error('Error deleting occurrence:', err);
+    alert('Error deleting occurrence. See console.');
+  } finally {
+    pendingRecurringDelete = null;
+  }
+}
+
+// User chose to delete all occurrences
+async function confirmDeleteAllOccurrences() {
+  if (!pendingRecurringDelete) return;
+  
+  const { eventId } = pendingRecurringDelete;
+  document.getElementById('recurring-delete-dialog').style.display = 'none';
+  
+  try {
+    const success = await deleteEvent(eventId);
+    if (success) {
+      closeEventModal();
+      await renderCalendar();
+    } else {
+      alert('Failed to delete event series. See console for details.');
+    }
+  } catch (err) {
+    console.error('Error deleting event series:', err);
+    alert('Error deleting event series. See console.');
+  } finally {
+    pendingRecurringDelete = null;
+  }
+}
+
+// User cancelled the delete
+function cancelRecurringDelete() {
+  document.getElementById('recurring-delete-dialog').style.display = 'none';
+  pendingRecurringDelete = null;
+}
+
 // Delete an event from the form (when editing)
 async function deleteEventFromForm() {
   const editingId = document.getElementById('editing-event-id')?.value;
@@ -1149,6 +1398,7 @@ function openForm() {
   // Clear the form when opening from the Plus button (not from a day cell click)
   document.getElementById('event-title').value = '';
   document.getElementById('event-date').value = '';
+  document.getElementById('event-end-date').value = '';
   document.getElementById('event-time').value = '';
   document.getElementById('event-description').value = '';
   document.getElementById('event-location').value = '';
@@ -1247,17 +1497,9 @@ function closeForm() {
   if (noneRadio) noneRadio.checked = true;
 } 
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   // Check authentication first
-  const isAuth = initAuth();
-  
-  // Only initialize calendar if authenticated
-  if (!isAuth) {
-    return; // Wait for login
-  }
-  
-  // Initialize calendar if already authenticated
-  initializeCalendar();
+  await checkAuthOnLoad();
 });
 
 // Track if calendar has been initialized to prevent double-initialization
@@ -1453,6 +1695,7 @@ function initializeCalendar() {
 
       const title = document.getElementById('event-title')?.value?.trim();
       const eventDate = document.getElementById('event-date')?.value; // YYYY-MM-DD
+      const eventEndDate = document.getElementById('event-end-date')?.value || eventDate; // YYYY-MM-DD, defaults to start date
       const isAllDay = document.getElementById('all-day-event')?.checked || false;
       const time = isAllDay ? null : (document.getElementById('event-time')?.value || null); // HH:MM or null if all-day
       const endTime = document.getElementById('add-end-time')?.checked ? document.getElementById('event-end-time')?.value : null; // HH:MM or null
@@ -1492,7 +1735,7 @@ function initializeCalendar() {
       const eventData = {
         title,
         startDate: eventDate,
-        endDate: eventDate,
+        endDate: eventEndDate,
         isAllDay: isAllDay,
         startTime: time || null,
         description: description || null,
@@ -1516,7 +1759,7 @@ function initializeCalendar() {
             title,
             description: description || null,
             start_date: eventDate,
-            end_date: eventDate,
+            end_date: eventEndDate,
             is_all_day: isAllDay,
             start_time: time || null,
             end_time: endTime || null,
@@ -1666,16 +1909,3 @@ function initializeCalendar() {
     renderCalendar();
   });
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  // Check authentication first
-  const isAuth = initAuth();
-  
-  // Only initialize calendar if authenticated
-  if (!isAuth) {
-    return; // Wait for login
-  }
-  
-  // Initialize calendar if already authenticated
-  initializeCalendar();
-});

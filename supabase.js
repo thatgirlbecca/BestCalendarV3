@@ -38,10 +38,17 @@ async function getCurrentUser() {
   return data ? data.user : null;
 }
 
-// Create a new event (no auth check)
+// Create a new event
 async function createEvent(eventData) {
-  // Allow unauthenticated access for testing
+  // Get current user
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
+    console.error('Cannot create event: user not authenticated');
+    return null;
+  }
+
   const payload = {
+    user_id: user.id,
     title: eventData.title || null,
     description: eventData.description || null,
     location: eventData.location || null,
@@ -131,6 +138,45 @@ async function deleteEvent(eventId) {
     return false;
   }
   return true;
+}
+
+// Add an exception date to a recurring event (excludes a single occurrence)
+async function addRecurringEventException(eventId, exceptionDate) {
+  try {
+    // First, get the current excluded_dates array
+    const { data: event, error: fetchError } = await supabaseClient
+      .from('calendar_events')
+      .select('excluded_dates')
+      .eq('id', eventId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching event:', fetchError);
+      return false;
+    }
+
+    // Add the new exception date to the array
+    const currentExceptions = event.excluded_dates || [];
+    if (!currentExceptions.includes(exceptionDate)) {
+      currentExceptions.push(exceptionDate);
+    }
+
+    // Update the event with the new excluded_dates
+    const { error: updateError } = await supabaseClient
+      .from('calendar_events')
+      .update({ excluded_dates: currentExceptions })
+      .eq('id', eventId);
+
+    if (updateError) {
+      console.error('Error updating excluded dates:', updateError);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Exception adding excluded date:', err);
+    return false;
+  }
 }
 
 // Subscribe to real-time changes on the calendar_events table

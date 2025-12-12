@@ -1,100 +1,78 @@
-// auth.js - Simple password-based authentication
+// auth.js - Supabase authentication
 
 const AUTH_STORAGE_KEY = 'calendar_auth_token';
-const AUTH_TIMESTAMP_KEY = 'calendar_auth_timestamp';
-const SESSION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+const SESSION_CHECK_INTERVAL = 60000; // Check session every minute
 
 // Check if user is authenticated
-function isAuthenticated() {
-  const token = localStorage.getItem(AUTH_STORAGE_KEY);
-  const timestamp = localStorage.getItem(AUTH_TIMESTAMP_KEY);
-  
-  if (!token || !timestamp) {
+async function isAuthenticated() {
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    
+    if (error) {
+      console.error('Error checking session:', error);
+      return false;
+    }
+    
+    return !!session;
+  } catch (err) {
+    console.error('Exception checking auth:', err);
     return false;
   }
-  
-  // Check if session has expired
-  const now = Date.now();
-  const authTime = parseInt(timestamp);
-  if (now - authTime > SESSION_DURATION) {
-    // Session expired, clear storage
-    clearAuth();
-    return false;
-  }
-  
-  return true;
 }
 
-// Store authentication token
-function setAuth(token) {
-  localStorage.setItem(AUTH_STORAGE_KEY, token);
-  localStorage.setItem(AUTH_TIMESTAMP_KEY, Date.now().toString());
+// Sign in with Supabase
+async function signInWithEmail(email, password) {
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      console.error('Error signing in:', error.message);
+      return { success: false, error: error.message };
+    }
+    
+    if (data.session) {
+      localStorage.setItem(AUTH_STORAGE_KEY, 'authenticated');
+      return { success: true, user: data.user };
+    }
+    
+    return { success: false, error: 'No session created' };
+  } catch (err) {
+    console.error('Exception signing in:', err);
+    return { success: false, error: 'An error occurred during sign in' };
+  }
 }
 
 // Clear authentication
-function clearAuth() {
-  localStorage.removeItem(AUTH_STORAGE_KEY);
-  localStorage.removeItem(AUTH_TIMESTAMP_KEY);
-}
-
-// Verify password against stored hash in Supabase
-async function verifyPassword(password) {
+async function clearAuth() {
   try {
-    // Fetch the stored password hash from Supabase
-    const { data, error } = await supabaseClient
-      .from('calendar_auth')
-      .select('password_hash')
-      .single();
-    
-    if (error) {
-      console.error('Error fetching auth data:', error);
-      return false;
-    }
-    
-    if (!data || !data.password_hash) {
-      console.error('No password hash found in database');
-      return false;
-    }
-    
-    // Simple hash comparison (SHA-256)
-    const inputHash = await hashPassword(password);
-    return inputHash === data.password_hash;
+    await supabaseClient.auth.signOut();
+    localStorage.removeItem(AUTH_STORAGE_KEY);
   } catch (err) {
-    console.error('Exception during password verification:', err);
-    return false;
+    console.error('Error signing out:', err);
   }
-}
-
-// Hash password using SHA-256
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
 }
 
 // Handle login form submission
 async function handleLogin(event) {
   event.preventDefault();
   
+  const emailInput = document.getElementById('login-email');
   const passwordInput = document.getElementById('login-password');
   const errorDiv = document.getElementById('login-error');
+  const email = emailInput.value.trim();
   const password = passwordInput.value;
   
   // Clear previous error
   errorDiv.style.display = 'none';
   errorDiv.textContent = '';
   
-  // Verify password
-  const isValid = await verifyPassword(password);
+  // Sign in with Supabase
+  const result = await signInWithEmail(email, password);
   
-  if (isValid) {
-    // Generate a simple token (just a timestamp + random string for this use case)
-    const token = Date.now().toString() + Math.random().toString(36).substring(2);
-    setAuth(token);
-    
+  if (result.success) {
     // Show calendar, hide login
     showCalendar();
     
@@ -110,18 +88,10 @@ async function handleLogin(event) {
     }
   } else {
     // Show error
-    errorDiv.textContent = 'Invalid password. Please try again.';
+    errorDiv.textContent = result.error || 'Invalid credentials. Please try again.';
     errorDiv.style.display = 'block';
     passwordInput.value = '';
     passwordInput.focus();
-  }
-}
-
-// Handle logout
-function handleLogout() {
-  if (confirm('Are you sure you want to logout?')) {
-    clearAuth();
-    showLogin();
   }
 }
 
@@ -149,18 +119,37 @@ function initAuth() {
   if (isAuthenticated()) {
     showCalendar();
     return true;
+  }
+}
+
+// Handle logout
+async function handleLogout() {
+  await clearAuth();
+  showLogin();
+}
+
+// Check authentication status on page load
+async function checkAuthOnLoad() {
+  const authenticated = await isAuthenticated();
+  
+  if (authenticated) {
+    showCalendar();
+    if (typeof initializeCalendar === 'function') {
+      initializeCalendar();
+    }
   } else {
     showLogin();
     return false;
   }
 }
 
-// Utility function to generate password hash (for setup)
-// Call this in browser console with your password to get the hash
-async function generatePasswordHash(password) {
-  const hash = await hashPassword(password);
-  console.log('Password hash:', hash);
-  console.log('Run this SQL in Supabase:');
-  console.log(`INSERT INTO calendar_auth (id, password_hash) VALUES (1, '${hash}') ON CONFLICT (id) DO UPDATE SET password_hash = '${hash}';`);
-  return hash;
-}
+// Monitor session state
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  console.log('Auth state changed:', event);
+  
+  if (event === 'SIGNED_OUT') {
+    showLogin();
+  } else if (event === 'SIGNED_IN' && session) {
+    showCalendar();
+  }
+});

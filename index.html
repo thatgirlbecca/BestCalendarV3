@@ -15,8 +15,10 @@
 		<div class="login-container">
 			<h1>Calendar Login</h1>
 			<form id="login-form" onsubmit="handleLogin(event)">
+				<label for="login-email"><b>Email</b></label>
+				<input type="email" id="login-email" placeholder="Enter your email" required autofocus autocomplete="off">
 				<label for="login-password"><b>Password</b></label>
-				<input type="password" id="login-password" placeholder="Enter password" required autofocus>
+				<input type="password" id="login-password" placeholder="Enter password" required autocomplete="off">
 				<button type="submit" class="btn-login">Login</button>
 				<div id="login-error" class="login-error" style="display: none;"></div>
 			</form>
@@ -53,50 +55,61 @@
 		<form id="event-form">
 			<div class="form-popup" id="myForm">
 				<button type="button" class="form-close-x" aria-label="Close" onclick="closeForm()">&times;</button>
-				<h2>Event Form</h2>
-				<label for="event-title"><b>Event Title</b></label>
-				<input type="text" id="event-title" placeholder="Enter Event Title" required>
+		<h2>Event Form</h2>
+		<label for="event-title"><b>Event Title</b></label>
+		<input type="text" id="event-title" placeholder="Enter Event Title" required>
 
-				<label for="event-date"><b>Event Date</b></label>
+		<div class="date-inputs-container">
+			<div class="date-input-group">
+				<label for="event-date"><b>Start Date</b></label>
 				<input type="date" id="event-date" required>
+			</div>
+			<div class="date-input-group">
+				<label for="event-end-date"><b>End Date</b></label>
+				<input type="date" id="event-end-date">
+			</div>
+		</div>
 
-				<label for="event-time"><b>Event Time</b></label>
-				<input type="time" id="event-time">
-
-				<div style="margin: 12px 0;">
-					<label for="add-end-time" style="display: block;"><input type="checkbox" id="add-end-time"> Add End Time</label>
+		<div class="time-inputs-container">
+				<div class="time-input-group">
+					<label for="event-time"><b>Start Time</b></label>
+					<input type="time" id="event-time">
 				</div>
-				
-				<div style="margin: 12px 0;">
-					<label for="all-day-event" style="display: block;"><input type="checkbox" id="all-day-event"> All Day Event</label>
-				</div>
-				
-				<div id="end-time-container" style="display: none;">
+				<div class="time-input-group" id="end-time-container" style="display: none;">
 					<label for="event-end-time"><b>End Time</b></label>
 					<input type="time" id="event-end-time">
 				</div>
+			</div>
 
-				<div style="margin: 12px 0;">
-					<label for="repeat-event" style="display: block;"><input type="checkbox" id="repeat-event"> Repeat Event</label>
-				</div>
+		<div class="checkbox-row">
+			<label for="add-end-time"><input type="checkbox" id="add-end-time"> End Time</label>
+			<label for="all-day-event"><input type="checkbox" id="all-day-event"> All Day</label>
+			<label for="repeat-event"><input type="checkbox" id="repeat-event"> Repeat</label>
+		</div>
 
-				<div id="recurrence-container" style="display: none;">
+		<div id="recurrence-container" style="display: none;">
+			<div class="recurrence-row">
+				<div class="recurrence-field">
 					<label for="recurrence-pattern"><b>Repeat Pattern</b></label>
 					<select id="recurrence-pattern">
-						<option value="">None</option>
-						<option value="DAILY">Daily</option>
-						<option value="WEEKLY">Weekly</option>
-						<option value="MONTHLY">Monthly</option>
-						<option value="MONTHLY_NTH">Monthly on nth Weekday</option>
-						<option value="YEARLY">Yearly</option>
-						<option value="CUSTOM_DAYS">Custom Days</option>
-					</select>
-
-					<label for="recurrence-interval"><b>Every</b></label>
-					<div style="display: flex; gap: 8px; align-items: center;">
-						<input type="number" id="recurrence-interval" min="1" value="1" style="width: 80px;">
-						<span id="interval-label">day(s)</span>
+							<option value="">None</option>
+							<option value="DAILY">Daily</option>
+							<option value="WEEKLY">Weekly</option>
+							<option value="MONTHLY">Monthly</option>
+							<option value="MONTHLY_NTH">Monthly on nth Weekday</option>
+							<option value="YEARLY">Yearly</option>
+							<option value="CUSTOM_DAYS">Custom Days</option>
+						</select>
 					</div>
+
+					<div class="recurrence-field recurrence-interval-field">
+						<label for="recurrence-interval"><b>Every</b></label>
+						<div style="display: flex; gap: 8px; align-items: center;">
+							<input type="number" id="recurrence-interval" min="1" value="1" style="width: 80px;">
+							<span id="interval-label">day(s)</span>
+						</div>
+					</div>
+				</div>
 
 					<div id="nth-weekday-container" style="display: none; margin: 12px 0;">
 						<label for="nth-week"><b>Which week?</b></label>
@@ -138,17 +151,15 @@
 							<label style="display: block; margin-bottom: 4px;">
 								<input type="radio" name="recurrence-end-type" value="none" checked> Never
 							</label>
-							<label style="display: block; margin-bottom: 4px;">
+							<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
 								<input type="radio" name="recurrence-end-type" value="date"> On date:
+								<input type="date" id="recurrence-end-date" style="width: 150px;">
 							</label>
-							<input type="date" id="recurrence-end-date" style="margin-left: 20px; margin-bottom: 8px;">
-							<label style="display: block;">
+							<label style="display: flex; align-items: center; gap: 8px;">
 								<input type="radio" name="recurrence-end-type" value="count"> After:
-							</label>
-							<div style="display: flex; gap: 8px; align-items: center; margin-left: 20px;">
-								<input type="number" id="recurrence-count" min="1" value="10" style="width: 80px;">
+								<input type="number" id="recurrence-count" min="1" value="10" style="width: 70px;">
 								<span>occurrences</span>
-							</div>
+							</label>
 						</div>
 					</div>
 				</div>
@@ -156,22 +167,22 @@
 				<label for="event-location"><b>Location</b></label>
 				<input type="text" id="event-location" placeholder="Optional location">
 
-				<label for="event-description"><b>Description</b></label>
-				<textarea id="event-description" placeholder="Optional description" rows="3"></textarea>
+			<label for="event-description"><b>Description</b></label>
+			<textarea id="event-description" placeholder="Optional description" rows="3"></textarea>
 
-				<label for="event-color"><b>Event Color</b></label>
-				<div class="color-picker">
-					<button type="button" id="color-picker-toggle" class="btn" aria-expanded="false">Pick Color</button>
-					<div id="color-options" class="color-options hidden" role="listbox" aria-label="Choose event color"></div>
-					<div id="color-preview" class="color-preview" aria-live="polite">Default</div>
-					<input type="hidden" id="event-color" value="">
-				</div>
-
-				<input type="hidden" id="editing-event-id" value="">
+			<input type="hidden" id="editing-event-id" value="">
+			<input type="hidden" id="event-color" value="">
+			
+			<div class="form-buttons">
 				<button type="submit" id="event-submit-btn" class="btn">Add Event</button>
 				<button type="button" id="delete-event-btn" class="btn cancel" style="display: none;" onclick="deleteEventFromForm()">Delete</button>
 				<button type="button" class="btn cancel" onclick="closeForm()">Close</button>
+				<div class="color-picker-inline">
+					<button type="button" id="color-picker-toggle" class="btn btn-color" aria-expanded="false">🎨</button>
+					<div id="color-options" class="color-options hidden" role="listbox" aria-label="Choose event color"></div>
+				</div>
 			</div>
+		</div>
 		</form>
 		<div id="weekdays-header">
 			<div>Mon</div>
@@ -192,6 +203,20 @@
 	</div>
 	<!-- Event detail modal -->
 	<div id="event-detail-modal"></div>
+	
+	<!-- Recurring Event Delete Dialog -->
+	<div id="recurring-delete-dialog" class="recurring-delete-overlay" style="display: none;">
+		<div class="recurring-delete-modal">
+			<h2>Delete Recurring Event</h2>
+			<p>This is a recurring event. What would you like to delete?</p>
+			<div class="recurring-delete-buttons">
+				<button class="recurring-delete-btn delete-single" onclick="confirmDeleteSingleOccurrence()">Delete This Occurrence Only</button>
+				<button class="recurring-delete-btn delete-all" onclick="confirmDeleteAllOccurrences()">Delete All Occurrences</button>
+				<button class="recurring-delete-btn cancel-delete" onclick="cancelRecurringDelete()">Cancel</button>
+			</div>
+		</div>
+	</div>
+	
 	<script src="supabase.js"></script>
 	<script src="calendar.js"></script>
 	<script src="auth.js"></script>
