@@ -232,6 +232,24 @@ body {
 	flex-wrap: wrap;
 }
 
+.sort-menu-btn {
+	display: none;
+	padding: 8px 16px;
+	background-color: #2a2a2a;
+	color: #FF4F91;
+	border: 1px solid #444;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.sort-menu-btn:hover {
+	background-color: #333;
+	border-color: #FF4F91;
+}
+
 .sort-controls label {
 	color: #ccc;
 	font-size: 13px;
@@ -430,6 +448,7 @@ body {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
+	white-space: nowrap;
 }
 
 .todo-labels {
@@ -454,14 +473,19 @@ body {
 }
 
 .todo-action-btn {
-	padding: 6px 10px;
+	padding: 4px 6px;
 	background-color: #444;
 	color: white;
 	border: none;
 	border-radius: 4px;
 	cursor: pointer;
-	font-size: 12px;
+	font-size: 16px;
 	transition: background-color 0.3s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	height: 32px;
 }
 
 .todo-action-btn:hover {
@@ -690,31 +714,343 @@ body {
 	background-color: #e63d7a;
 }
 
+.sort-modal-content {
+	max-width: 400px;
+}
+
+.sort-modal-content select {
+	width: 100%;
+	padding: 10px;
+	background-color: #333;
+	border: 1px solid #555;
+	border-radius: 4px;
+	color: #fff;
+	font-size: 14px;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.sort-modal-content select:focus {
+	outline: none;
+	border-color: #FF4F91;
+}
+
+.sort-modal-content .sort-direction-btn {
+	padding: 10px;
+	background-color: #2a2a2a;
+	color: #FF4F91;
+	border: 1px solid #444;
+	border-radius: 4px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	min-width: 45px;
+	height: 45px;
+	transition: all 0.2s;
+}
+
+.sort-modal-content .sort-direction-btn:hover {
+	background-color: #333;
+	border-color: #FF4F91;
+}
+
+.sort-modal-content label {
+	display: block;
+	margin-bottom: 6px;
+	color: #e0e0e0;
+	font-weight: 500;
+}
+
+/* Todo Detail Modal */
+#todo-detail-modal .modal-content {
+	max-width: 600px;
+}
+
+.todo-detail-field {
+	margin-bottom: 16px;
+}
+
+.todo-detail-label {
+	color: #FF4F91;
+	font-weight: 600;
+	font-size: 14px;
+	margin-bottom: 6px;
+	display: block;
+}
+
+.todo-detail-value {
+	color: #e0e0e0;
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.todo-detail-importance {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 4px;
+	font-weight: 600;
+}
+
+.todo-detail-importance.high {
+	background-color: rgba(255, 68, 68, 0.2);
+	color: #ff4444;
+}
+
+.todo-detail-importance.medium {
+	background-color: rgba(255, 136, 0, 0.2);
+	color: #ff8800;
+}
+
+.todo-detail-importance.low {
+	background-color: rgba(255, 204, 0, 0.2);
+	color: #ffcc00;
+}
+
+.todo-detail-importance.none {
+	background-color: rgba(102, 102, 102, 0.2);
+	color: #999;
+}
+
+.todo-detail-labels {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.todo-detail-label-tag {
+	padding: 4px 10px;
+	background-color: #444;
+	color: #e0e0e0;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.modal-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 20px;
+	padding-top: 20px;
+	border-top: 1px solid #444;
+}
+
+.modal-action-btn {
+	padding: 10px 20px;
+	border: none;
+	border-radius: 4px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.modal-action-btn.modal-edit {
+	background-color: #2a2a2a;
+	color: #85e085;
+	border: 1px solid #444;
+}
+
+.modal-action-btn.modal-edit:hover {
+	background-color: #333;
+	color: #9ef09e;
+}
+
+.modal-action-btn.modal-delete {
+	background-color: #2a2a2a;
+	color: #ff6b6b;
+	border: 1px solid #444;
+}
+
+.modal-action-btn.modal-delete:hover {
+	background-color: #333;
+	color: #ff8585;
+}
+
+.modal-action-btn.modal-archive {
+	background-color: #2a2a2a;
+	color: #aed6f1;
+	border: 1px solid #444;
+}
+
+.modal-action-btn.modal-archive:hover {
+	background-color: #333;
+	color: #c4e4f7;
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
+	#todo-app {
+		flex-direction: column;
+	}
+	
+	#todo-main {
+		flex-direction: column;
+		padding-bottom: 60px; /* Space for bottom nav */
+	}
+	
 	#todo-sidebar {
-		width: 60px;
-		padding: 20px 5px;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		height: auto;
+		padding: 0;
+		border-right: none;
+		border-top: 2px solid #333;
+		background-color: #111;
+		z-index: 100;
+	}
+	
+	.view-section {
+		flex-direction: row;
+		justify-content: space-around;
+		gap: 0;
+		padding: 0;
 	}
 	
 	.view-btn {
-		padding: 10px 5px;
-		font-size: 20px;
+		flex: 1;
+		padding: 6px 2px;
+		font-size: 9px;
 		text-align: center;
+		border-radius: 0;
+		background-color: transparent;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+		border: none;
+		min-height: 55px;
 	}
 	
-	.view-btn span {
-		display: none;
+	.view-btn .view-icon {
+		font-size: 22px;
+		display: block;
+	}
+	
+	.view-btn .view-text {
+		font-size: 10px;
+		display: block;
+		font-weight: 500;
+	}
+	
+	.view-btn:hover {
+		background-color: #222;
+	}
+	
+	.view-btn.active {
+		background-color: transparent;
+		color: #FF4F91;
+		border-top: 3px solid #FF4F91;
+	}
+	
+	.view-btn.active .view-text {
+		color: #FF4F91;
+	}
+	
+	#todo-header {
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 20px;
 	}
 	
 	#todo-header h1 {
 		font-size: 1.3em;
 	}
 	
+	.header-buttons {
+		justify-content: center;
+	}
+	
+	#todo-view-header {
+		padding: 12px 10px;
+	}
+	
+	.sort-menu-btn {
+		display: block;
+	}
+	
+	.sort-controls label,
+	.sort-controls select,
+	.sort-controls .sort-direction-btn {
+		display: none;
+	}
+	
+	#view-title {
+		display: none;
+	}
+	
+	#todo-view-header {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto;
+		gap: 10px;
+		padding: 10px;
+	}
+	
+	.sort-controls {
+		grid-column: 1;
+		grid-row: 1;
+		justify-content: flex-start;
+	}
+	
+	.add-btn {
+		grid-column: 1;
+		grid-row: 1;
+		justify-self: end;
+		padding: 8px 16px;
+		font-size: 14px;
+	}
+	
+	.sort-controls {
+		font-size: 11px;
+	}
+	
+	.sort-controls select {
+		font-size: 11px;
+		padding: 4px 6px;
+		min-width: 70px;
+	}
+	
+	.sort-direction-btn {
+		font-size: 14px;
+		padding: 4px 8px;
+		min-width: 30px;
+	}
+	
+	.add-btn {
+		padding: 8px 16px;
+		font-size: 14px;
+	}
+	
 	.modal-content {
 		width: 95%;
 		margin: 10% auto;
+	}
+	
+	.todo-item {
+		padding: 12px;
+		gap: 10px;
+	}
+	
+	.todo-text {
+		font-size: 15px;
+	}
+	
+	.todo-actions {
+		flex-direction: column;
+		gap: 4px;
+	}
+	
+	.todo-action-btn {
+		padding: 5px 8px;
+		font-size: 11px;
 	}
 }

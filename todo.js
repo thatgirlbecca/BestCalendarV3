@@ -56,6 +56,27 @@ function setupEventListeners() {
   endTypeRadios.forEach(radio => {
     radio.addEventListener('change', updateRecurrenceEndUI);
   });
+  
+  // Close modals when clicking outside
+  window.addEventListener('click', (e) => {
+    // Todo form modal
+    const todoModal = document.getElementById('todo-modal');
+    if (e.target === todoModal) {
+      closeTodoForm();
+    }
+    
+    // Sort modal
+    const sortModal = document.getElementById('sort-modal');
+    if (e.target === sortModal) {
+      closeSortMenu();
+    }
+    
+    // Todo detail modal
+    const detailModal = document.getElementById('todo-detail-modal');
+    if (e.target === detailModal) {
+      closeTodoDetail();
+    }
+  });
 }
 
 // Update recurrence end UI based on selected type
@@ -182,7 +203,12 @@ function filterTodosForView() {
       return todos.filter(t => 
         !t.archived && 
         !t.completed && 
-        (t.due_date === today || t.start_date === today || (t.due_date && t.due_date < today))
+        (
+          t.due_date === today || 
+          t.start_date === today || 
+          (t.due_date && t.due_date < today) ||
+          (t.start_date && t.start_date <= today)
+        )
       );
     
     case 'upcoming':
@@ -318,6 +344,218 @@ function openTodoForm(todoId = null) {
       document.getElementById('todo-start-date').value = today;
     }, 0);
   }
+}
+
+// Close todo form
+function closeTodoForm() {
+  document.getElementById('todo-modal').style.display = 'none';
+  editingTodoId = null;
+}
+
+// Open todo detail modal
+function openTodoDetail(todoId) {
+  const todo = todos.find(t => t.id === todoId);
+  if (!todo) return;
+  
+  const modal = document.getElementById('todo-detail-modal');
+  const importanceLabels = { 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+  const importanceClasses = { 1: 'high', 2: 'medium', 3: 'low', 4: 'none' };
+  
+  // Set title
+  document.getElementById('todo-detail-title').textContent = todo.text;
+  
+  // Build detail content
+  let detailsHtml = '';
+  
+  // Description
+  if (todo.description) {
+    detailsHtml += `
+      <div class="todo-detail-field">
+        <span class="todo-detail-label">Description</span>
+        <div class="todo-detail-value">${escapeHtml(todo.description)}</div>
+      </div>
+    `;
+  }
+  
+  // Start Date
+  if (todo.start_date) {
+    detailsHtml += `
+      <div class="todo-detail-field">
+        <span class="todo-detail-label">Start Date</span>
+        <div class="todo-detail-value">${formatDetailDate(todo.start_date)}</div>
+      </div>
+    `;
+  }
+  
+  // Due Date
+  if (todo.due_date) {
+    detailsHtml += `
+      <div class="todo-detail-field">
+        <span class="todo-detail-label">Due Date</span>
+        <div class="todo-detail-value">${formatDetailDate(todo.due_date)}</div>
+      </div>
+    `;
+  }
+  
+  // Importance
+  detailsHtml += `
+    <div class="todo-detail-field">
+      <span class="todo-detail-label">Importance</span>
+      <div class="todo-detail-value">
+        <span class="todo-detail-importance ${importanceClasses[todo.importance || 4]}">
+          ${importanceLabels[todo.importance || 4]}
+        </span>
+      </div>
+    </div>
+  `;
+  
+  // Recurrence
+  if (todo.recurrence_rule) {
+    let recurrenceText = formatRecurrenceRule(todo);
+    detailsHtml += `
+      <div class="todo-detail-field">
+        <span class="todo-detail-label">Recurrence</span>
+        <div class="todo-detail-value">${recurrenceText}</div>
+      </div>
+    `;
+  }
+  
+  // Labels
+  if (todo.labels && todo.labels.length > 0) {
+    detailsHtml += `
+      <div class="todo-detail-field">
+        <span class="todo-detail-label">Labels</span>
+        <div class="todo-detail-labels">
+          ${todo.labels.map(l => `<span class="todo-detail-label-tag">${escapeHtml(l)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // Status
+  detailsHtml += `
+    <div class="todo-detail-field">
+      <span class="todo-detail-label">Status</span>
+      <div class="todo-detail-value">${todo.completed ? '✅ Completed' : '⭕ Not Completed'}</div>
+    </div>
+  `;
+  
+  document.getElementById('todo-detail-content').innerHTML = detailsHtml;
+  
+  // Set archive button text
+  const archiveBtn = document.querySelector('.modal-action-btn.modal-archive');
+  if (currentView === 'archive' || todo.archived) {
+    archiveBtn.textContent = '📤 Unarchive';
+  } else {
+    archiveBtn.textContent = '📦 Archive';
+  }
+  
+  // Store the current todo ID
+  modal.dataset.todoId = todoId;
+  
+  modal.style.display = 'block';
+}
+
+// Close todo detail modal
+function closeTodoDetail() {
+  const modal = document.getElementById('todo-detail-modal');
+  modal.style.display = 'none';
+  delete modal.dataset.todoId;
+}
+
+// Edit todo from detail modal
+function editTodoFromDetail() {
+  const modal = document.getElementById('todo-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  closeTodoDetail();
+  openTodoForm(todoId);
+}
+
+// Delete todo from detail modal
+async function deleteTodoFromDetail() {
+  const modal = document.getElementById('todo-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  
+  if (confirm('Delete this todo?')) {
+    closeTodoDetail();
+    await deleteTodo(todoId);
+    await loadTodos();
+  }
+}
+
+// Archive/Unarchive todo from detail modal
+async function archiveTodoFromDetail() {
+  const modal = document.getElementById('todo-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  const todo = todos.find(t => t.id === todoId);
+  
+  if (!todo) return;
+  
+  closeTodoDetail();
+  
+  if (currentView === 'archive' || todo.archived) {
+    await unarchiveTodo(todoId);
+  } else {
+    await archiveTodo(todoId);
+  }
+  
+  await loadTodos();
+}
+
+// Format date for detail view
+function formatDetailDate(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+}
+
+// Format recurrence rule for detail view
+function formatRecurrenceRule(todo) {
+  let text = '';
+  const interval = todo.recurrence_interval || 1;
+  
+  switch (todo.recurrence_rule) {
+    case 'DAILY':
+      text = interval === 1 ? 'Daily' : `Every ${interval} days`;
+      break;
+    case 'WEEKLY':
+      text = interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+      break;
+    case 'MONTHLY':
+      text = interval === 1 ? 'Monthly' : `Every ${interval} months`;
+      break;
+    case 'YEARLY':
+      text = interval === 1 ? 'Yearly' : `Every ${interval} years`;
+      break;
+    case 'CUSTOM_DAYS':
+      if (todo.recurrence_days && todo.recurrence_days.length > 0) {
+        text = `Every ${todo.recurrence_days.join(', ')}`;
+      } else {
+        text = 'Custom days';
+      }
+      break;
+  }
+  
+  // Add recurrence type
+  if (todo.recurrence_type === 'after_completion') {
+    text += ' (after completion)';
+  } else {
+    text += ' (on schedule)';
+  }
+  
+  // Add end condition
+  if (todo.recurrence_end_date) {
+    text += ` until ${formatDetailDate(todo.recurrence_end_date)}`;
+  } else if (todo.recurrence_count) {
+    text += ` for ${todo.recurrence_count} occurrences`;
+  }
+  
+  return text;
 }
 
 // Close todo form
@@ -674,11 +912,11 @@ function renderTodoItem(todo) {
     : '';
   
   const archiveBtn = currentView === 'archive'
-    ? `<button class="todo-action-btn" onclick="unarchiveTodoItem(event, ${todo.id})">Unarchive</button>`
-    : `<button class="todo-action-btn" onclick="archiveTodoItem(event, ${todo.id})">Archive</button>`;
+    ? `<button class="todo-action-btn" onclick="unarchiveTodoItem(event, ${todo.id})" title="Unarchive">📤</button>`
+    : `<button class="todo-action-btn" onclick="archiveTodoItem(event, ${todo.id})" title="Archive">📦</button>`;
   
   return `
-    <div class="todo-item ${importanceClass} ${completedClass} ${dueTodayClass} ${overdueClass}" onclick="openTodoForm(${todo.id})">
+    <div class="todo-item ${importanceClass} ${completedClass} ${dueTodayClass} ${overdueClass}" onclick="openTodoDetail(${todo.id})">
       <input 
         type="checkbox" 
         class="todo-checkbox" 
@@ -687,13 +925,13 @@ function renderTodoItem(todo) {
       />
       <div class="todo-main-content">
         <div class="todo-text">${importanceIcons[todo.importance || 4]} ${escapeHtml(todo.text)}</div>
-        ${todo.description ? `<div style="color: #999; font-size: 13px; margin-top: 4px;">${escapeHtml(todo.description)}</div>` : ''}
         ${metaInfo.length > 0 ? `<div class="todo-meta">${metaInfo.join(' • ')}</div>` : ''}
+        ${todo.description ? `<div style="color: #999; font-size: 13px; margin-top: 4px;">${escapeHtml(todo.description)}</div>` : ''}
         ${labelsHtml}
       </div>
       <div class="todo-actions">
         ${archiveBtn}
-        <button class="todo-action-btn delete" onclick="deleteTodoItem(event, ${todo.id})">Delete</button>
+        <button class="todo-action-btn delete" onclick="deleteTodoItem(event, ${todo.id})" title="Delete">🗑️</button>
       </div>
     </div>
   `;
@@ -750,6 +988,64 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Open sort menu modal
+function openSortMenu() {
+  const modal = document.getElementById('sort-modal');
+  const settings = sortSettings[currentView];
+  
+  // Populate modal with current settings
+  document.getElementById('sort-select-modal').value = settings.by;
+  document.getElementById('sort-direction-modal-btn').textContent = settings.direction === 'asc' ? '↑' : '↓';
+  document.getElementById('sort-direction-modal-btn').dataset.direction = settings.direction;
+  
+  document.getElementById('sort-select-secondary-modal').value = settings.secondaryBy || '';
+  document.getElementById('sort-direction-secondary-modal-btn').textContent = settings.secondaryDirection === 'asc' ? '↑' : '↓';
+  document.getElementById('sort-direction-secondary-modal-btn').dataset.direction = settings.secondaryDirection;
+  
+  modal.style.display = 'block';
+}
+
+// Close sort menu modal
+function closeSortMenu() {
+  document.getElementById('sort-modal').style.display = 'none';
+}
+
+// Toggle modal sort direction
+function toggleModalSortDirection() {
+  const btn = document.getElementById('sort-direction-modal-btn');
+  const currentDirection = btn.dataset.direction || 'asc';
+  const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+  btn.dataset.direction = newDirection;
+  btn.textContent = newDirection === 'asc' ? '↑' : '↓';
+}
+
+// Toggle modal secondary sort direction
+function toggleModalSecondarySortDirection() {
+  const btn = document.getElementById('sort-direction-secondary-modal-btn');
+  const currentDirection = btn.dataset.direction || 'asc';
+  const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+  btn.dataset.direction = newDirection;
+  btn.textContent = newDirection === 'asc' ? '↑' : '↓';
+}
+
+// Apply sort settings from modal
+function applySortFromModal() {
+  const sortBy = document.getElementById('sort-select-modal').value;
+  const direction = document.getElementById('sort-direction-modal-btn').dataset.direction || 'asc';
+  const secondarySortBy = document.getElementById('sort-select-secondary-modal').value;
+  const secondaryDirection = document.getElementById('sort-direction-secondary-modal-btn').dataset.direction || 'asc';
+  
+  sortSettings[currentView].by = sortBy;
+  sortSettings[currentView].direction = direction;
+  sortSettings[currentView].secondaryBy = secondarySortBy;
+  sortSettings[currentView].secondaryDirection = secondaryDirection;
+  
+  saveSortSettings(sortSettings);
+  updateSortControlsUI();
+  renderTodos();
+  closeSortMenu();
 }
 
 // Override the calendar's initializeCalendar to call todo initialization instead

@@ -40,16 +40,20 @@
 			<div id="todo-sidebar">
 				<div class="view-section">
 					<button class="view-btn active" data-view="today" onclick="switchView('today')">
-						📅 Today
+						<span class="view-icon">📅</span>
+						<span class="view-text">Today</span>
 					</button>
 					<button class="view-btn" data-view="upcoming" onclick="switchView('upcoming')">
-						📆 Upcoming
+						<span class="view-icon">📆</span>
+						<span class="view-text">Upcoming</span>
 					</button>
 					<button class="view-btn" data-view="inbox" onclick="switchView('inbox')">
-						📥 Inbox
+						<span class="view-icon">📥</span>
+						<span class="view-text">Inbox</span>
 					</button>
 					<button class="view-btn" data-view="archive" onclick="switchView('archive')">
-						📦 Archive
+						<span class="view-icon">📦</span>
+						<span class="view-text">Archive</span>
 					</button>
 				</div>
 			</div>
@@ -58,6 +62,7 @@
 			<div id="todo-content">
 				<div id="todo-view-header">
 					<div class="sort-controls">
+						<button id="sort-menu-btn" class="sort-menu-btn" onclick="openSortMenu()">⚙️ Sort</button>
 						<label>Sort by:</label>
 						<select id="sort-select" onchange="updateSort()">
 							<option value="start_date">Start Date</option>
@@ -213,6 +218,77 @@
 					<button type="submit" class="btn-save">Save</button>
 				</div>
 			</form>
+		</div>
+	</div>
+
+	<!-- Sort Options Modal -->
+	<div id="sort-modal" class="modal" style="display: none;">
+		<div class="modal-content sort-modal-content">
+			<div class="modal-header">
+				<h2>Sort Options</h2>
+				<span class="close" onclick="closeSortMenu()">&times;</span>
+			</div>
+			<div style="padding: 20px;">
+				<div class="form-row-split">
+					<div style="flex: 1;">
+						<label for="sort-select-modal">Sort by:</label>
+						<select id="sort-select-modal">
+							<option value="start_date">Start Date</option>
+							<option value="due_date">Due Date</option>
+							<option value="importance">Priority</option>
+							<option value="recurring">Recurring</option>
+							<option value="alphabetical">Alphabetical</option>
+						</select>
+					</div>
+					<div style="display: flex; flex-direction: column; justify-content: flex-end;">
+						<button id="sort-direction-modal-btn" class="sort-direction-btn" onclick="toggleModalSortDirection()" title="Toggle sort direction">
+							↑
+						</button>
+					</div>
+				</div>
+				<div class="form-row-split">
+					<div style="flex: 1;">
+						<label for="sort-select-secondary-modal">Then by:</label>
+						<select id="sort-select-secondary-modal">
+							<option value="">None</option>
+							<option value="start_date">Start Date</option>
+							<option value="due_date">Due Date</option>
+							<option value="importance">Priority</option>
+							<option value="recurring">Recurring</option>
+							<option value="alphabetical">Alphabetical</option>
+						</select>
+					</div>
+					<div style="display: flex; flex-direction: column; justify-content: flex-end;">
+						<button id="sort-direction-secondary-modal-btn" class="sort-direction-btn" onclick="toggleModalSecondarySortDirection()" title="Toggle secondary sort direction">
+							↑
+						</button>
+					</div>
+				</div>
+				<div class="form-actions">
+					<button type="button" class="btn-cancel" onclick="closeSortMenu()">Cancel</button>
+					<button type="button" class="btn-save" onclick="applySortFromModal()">Apply</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Todo Detail Modal -->
+	<div id="todo-detail-modal" class="modal" style="display: none;">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h2 id="todo-detail-title"></h2>
+				<span class="close" onclick="closeTodoDetail()">&times;</span>
+			</div>
+			<div style="padding: 20px;">
+				<div id="todo-detail-content">
+					<!-- Details will be populated here -->
+				</div>
+				<div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
+					<button class="modal-action-btn modal-edit" onclick="editTodoFromDetail()">✏️ Edit</button>
+					<button class="modal-action-btn modal-delete" onclick="deleteTodoFromDetail()">🗑️ Delete</button>
+					<button class="modal-action-btn modal-archive" onclick="archiveTodoFromDetail()"></button>
+				</div>
+			</div>
 		</div>
 	</div>
 
