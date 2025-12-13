@@ -98,19 +98,43 @@ async function handleLogin(event) {
 // Show calendar screen
 function showCalendar() {
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('calendar').style.display = 'flex';
+  
+  // Check which app is present (calendar or todo)
+  const calendarEl = document.getElementById('calendar');
+  const todoEl = document.getElementById('todo-app');
+  
+  if (calendarEl) {
+    calendarEl.style.display = 'flex';
+  }
+  if (todoEl) {
+    todoEl.style.display = 'flex';
+  }
 }
 
 // Show login screen
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('calendar').style.display = 'none';
+  
+  // Hide whichever app is present
+  const calendarEl = document.getElementById('calendar');
+  const todoEl = document.getElementById('todo-app');
+  
+  if (calendarEl) {
+    calendarEl.style.display = 'none';
+  }
+  if (todoEl) {
+    todoEl.style.display = 'none';
+  }
   
   // Clear password field
   const passwordInput = document.getElementById('login-password');
   if (passwordInput) {
     passwordInput.value = '';
-    passwordInput.focus();
+  }
+  const emailInput = document.getElementById('login-email');
+  if (emailInput) {
+    emailInput.value = '';
+    emailInput.focus();
   }
 }
 
@@ -130,14 +154,24 @@ async function handleLogout() {
 
 // Check authentication status on page load
 async function checkAuthOnLoad() {
-  const authenticated = await isAuthenticated();
-  
-  if (authenticated) {
-    showCalendar();
-    if (typeof initializeCalendar === 'function') {
-      initializeCalendar();
+  try {
+    // Wait a moment for Supabase to initialize from localStorage
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const authenticated = await isAuthenticated();
+    
+    if (authenticated) {
+      showCalendar();
+      if (typeof initializeCalendar === 'function') {
+        initializeCalendar();
+      }
+      return true;
+    } else {
+      showLogin();
+      return false;
     }
-  } else {
+  } catch (err) {
+    console.error('Error checking auth on load:', err);
     showLogin();
     return false;
   }

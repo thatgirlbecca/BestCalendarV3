@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Todo List - Oakley Family</title>
+	<link rel="icon" type="image/png" href="BestCalendarV3Favicon3.png">
+	<link rel="stylesheet" href="todo.css">
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="config.js"></script>
+</head>
+<body>
+	<!-- Login Screen -->
+	<div id="login-screen" style="display: none;">
+		<div class="login-container">
+			<h1>Todo Login</h1>
+			<form id="login-form" onsubmit="handleLogin(event)">
+				<label for="login-email"><b>Email</b></label>
+				<input type="email" id="login-email" placeholder="Enter your email" required autofocus autocomplete="off">
+				<label for="login-password"><b>Password</b></label>
+				<input type="password" id="login-password" placeholder="Enter password" required autocomplete="off">
+				<button type="submit" class="btn-login">Login</button>
+				<div id="login-error" class="login-error" style="display: none;"></div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Todo App -->
+	<div id="todo-app" style="display: none;">
+		<div id="todo-header">
+			<h1>📝 Todo List</h1>
+			<div class="header-buttons">
+				<a href="index.html" class="nav-link">📅 Calendar</a>
+				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+			</div>
+		</div>
+
+		<div id="todo-main">
+			<!-- Sidebar for views -->
+			<div id="todo-sidebar">
+				<div class="view-section">
+					<button class="view-btn active" data-view="today" onclick="switchView('today')">
+						📅 Today
+					</button>
+					<button class="view-btn" data-view="upcoming" onclick="switchView('upcoming')">
+						📆 Upcoming
+					</button>
+					<button class="view-btn" data-view="inbox" onclick="switchView('inbox')">
+						📥 Inbox
+					</button>
+					<button class="view-btn" data-view="archive" onclick="switchView('archive')">
+						📦 Archive
+					</button>
+				</div>
+			</div>
+
+			<!-- Main content area -->
+			<div id="todo-content">
+				<div id="todo-view-header">
+					<div class="sort-controls">
+						<label>Sort by:</label>
+						<select id="sort-select" onchange="updateSort()">
+							<option value="start_date">Start Date</option>
+							<option value="due_date">Due Date</option>
+							<option value="importance">Priority</option>
+							<option value="recurring">Recurring</option>
+							<option value="alphabetical">Alphabetical</option>
+						</select>
+						<button id="sort-direction-btn" class="sort-direction-btn" onclick="toggleSortDirection()" title="Toggle sort direction">
+							↑
+						</button>
+						<label style="margin-left: 10px;">Then by:</label>
+						<select id="sort-select-secondary" onchange="updateSort()">
+							<option value="">None</option>
+							<option value="start_date">Start Date</option>
+							<option value="due_date">Due Date</option>
+							<option value="importance">Priority</option>
+							<option value="recurring">Recurring</option>
+							<option value="alphabetical">Alphabetical</option>
+						</select>
+						<button id="sort-direction-btn-secondary" class="sort-direction-btn" onclick="toggleSortDirectionSecondary()" title="Toggle secondary sort direction">
+							↑
+						</button>
+					</div>
+					<h2 id="view-title">Inbox</h2>
+					<button id="add-todo-btn" class="add-btn" onclick="openTodoForm()">+ Add Todo</button>
+				</div>
+
+				<div id="todo-list">
+					<!-- Todos will be rendered here -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Todo Form Modal -->
+	<div id="todo-modal" class="modal" style="display: none;">
+		<div class="modal-content todo-modal-content">
+			<div class="modal-header">
+				<h2 id="modal-title">Add Todo</h2>
+				<span class="close" onclick="closeTodoForm()">&times;</span>
+			</div>
+			<form id="todo-form" onsubmit="saveTodo(event)">
+				<div class="form-row">
+					<label for="todo-text">Task *</label>
+					<input type="text" id="todo-text" required placeholder="What needs to be done?">
+				</div>
+
+				<div class="form-row">
+					<label for="todo-description">Description</label>
+					<textarea id="todo-description" rows="3" placeholder="Add details..."></textarea>
+				</div>
+
+				<div class="form-row-split">
+					<div class="form-col">
+						<label for="todo-start-date">Start Date</label>
+						<input type="date" id="todo-start-date">
+					</div>
+					<div class="form-col">
+						<label for="todo-due-date">Due Date</label>
+						<input type="date" id="todo-due-date">
+					</div>
+				</div>
+
+				<div class="form-row">
+					<label for="todo-importance">Importance</label>
+					<select id="todo-importance">
+						<option value="1">🔴 High (1)</option>
+						<option value="2">🟠 Medium (2)</option>
+						<option value="3">🟡 Low (3)</option>
+						<option value="4" selected>⚪ None (4)</option>
+					</select>
+				</div>
+
+				<div class="form-row">
+					<label for="todo-labels">Labels (comma separated)</label>
+					<input type="text" id="todo-labels" placeholder="work, personal, urgent">
+				</div>
+
+				<div class="form-row">
+					<label>
+						<input type="checkbox" id="todo-recurring"> Recurring Task
+					</label>
+				</div>
+
+				<div id="recurrence-section" style="display: none;">
+					<div class="form-row">
+						<label for="todo-recurrence-type">Recurrence Type</label>
+						<select id="todo-recurrence-type">
+							<option value="schedule">On Schedule (fixed dates, like "every Wednesday")</option>
+							<option value="after_completion">After Completion (e.g., "3 days after I complete it")</option>
+						</select>
+					</div>
+
+					<div class="form-row">
+						<label for="todo-recurrence-rule">Repeat</label>
+						<select id="todo-recurrence-rule">
+							<option value="DAILY">Daily</option>
+							<option value="WEEKLY">Weekly</option>
+							<option value="MONTHLY">Monthly</option>
+							<option value="YEARLY">Yearly</option>
+							<option value="CUSTOM_DAYS">Custom Days</option>
+						</select>
+					</div>
+
+					<div class="form-row">
+						<label for="todo-recurrence-interval">Every</label>
+						<input type="number" id="todo-recurrence-interval" min="1" value="1">
+						<span id="interval-label">day(s)</span>
+					</div>
+
+					<div id="custom-days-section" style="display: none;">
+						<label>Days of Week</label>
+						<div class="checkbox-row">
+							<label><input type="checkbox" value="Sunday"> Sun</label>
+							<label><input type="checkbox" value="Monday"> Mon</label>
+							<label><input type="checkbox" value="Tuesday"> Tue</label>
+							<label><input type="checkbox" value="Wednesday"> Wed</label>
+							<label><input type="checkbox" value="Thursday"> Thu</label>
+							<label><input type="checkbox" value="Friday"> Fri</label>
+							<label><input type="checkbox" value="Saturday"> Sat</label>
+						</div>
+					</div>
+
+					<div class="form-row">
+						<label>End After</label>
+						<div style="display: flex; gap: 10px; align-items: center;">
+							<label style="display: flex; align-items: center; gap: 4px;">
+								<input type="radio" name="recurrence-end-type" value="never" checked> Never
+							</label>
+							<label style="display: flex; align-items: center; gap: 4px;">
+								<input type="radio" name="recurrence-end-type" value="date"> On Date
+							</label>
+							<label style="display: flex; align-items: center; gap: 4px;">
+								<input type="radio" name="recurrence-end-type" value="count"> After
+							</label>
+						</div>
+					</div>
+
+					<div class="form-row" id="recurrence-end-date-section" style="display: none;">
+						<label for="todo-recurrence-end">End Date</label>
+						<input type="date" id="todo-recurrence-end">
+					</div>
+
+					<div class="form-row" id="recurrence-count-section" style="display: none;">
+						<label for="todo-recurrence-count">Number of Occurrences</label>
+						<input type="number" id="todo-recurrence-count" min="1" value="10" placeholder="e.g., 10">
+					</div>
+				</div>
+
+				<div class="form-actions">
+					<button type="button" class="btn-cancel" onclick="closeTodoForm()">Cancel</button>
+					<button type="submit" class="btn-save">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<script src="supabase.js"></script>
+	<script src="todo.js"></script>
+	<script src="auth.js"></script>
+</body>
+</html>
