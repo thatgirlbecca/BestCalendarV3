@@ -30,7 +30,11 @@
 		<div id="todo-header">
 			<h1>📝 Todo List</h1>
 			<div class="header-buttons">
-				<a href="index.html" class="nav-link">📅 Calendar</a>
+				<select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
+					<option value="index.html">📅 Calendar</option>
+					<option value="" selected>📝 Todos</option>
+					<option value="grocery.html">🛒 Grocery</option>
+				</select>
 				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
 			</div>
 		</div>
@@ -61,6 +65,8 @@
 			<!-- Main content area -->
 			<div id="todo-content">
 				<div id="todo-view-header">
+					<button id="add-todo-btn" class="add-btn" onclick="openTodoForm()">+ Add Todo</button>
+					<h2 id="view-title">Inbox</h2>
 					<div class="sort-controls">
 						<button id="sort-menu-btn" class="sort-menu-btn" onclick="openSortMenu()">⚙️ Sort</button>
 						<label>Sort by:</label>
@@ -87,8 +93,6 @@
 							↑
 						</button>
 					</div>
-					<h2 id="view-title">Inbox</h2>
-					<button id="add-todo-btn" class="add-btn" onclick="openTodoForm()">+ Add Todo</button>
 				</div>
 
 				<div id="todo-list">
@@ -283,11 +287,15 @@
 				<div id="todo-detail-content">
 					<!-- Details will be populated here -->
 				</div>
-				<div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
-					<button class="modal-action-btn modal-edit" onclick="editTodoFromDetail()">✏️ Edit</button>
-					<button class="modal-action-btn modal-delete" onclick="deleteTodoFromDetail()">🗑️ Delete</button>
-					<button class="modal-action-btn modal-archive" onclick="archiveTodoFromDetail()"></button>
+			<div class="modal-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
+				<div style="display: flex; gap: 10px;">
+					<button class="modal-action-btn modal-edit-new" onclick="editTodoFromDetail()">✏️ Edit</button>
 				</div>
+				<div style="display: flex; gap: 10px;">
+					<button class="modal-action-btn modal-archive" onclick="archiveTodoFromDetail()"></button>
+					<button class="modal-action-btn modal-delete" onclick="deleteTodoFromDetail()">🗑️ Delete</button>
+				</div>
+			</div>
 			</div>
 		</div>
 	</div>

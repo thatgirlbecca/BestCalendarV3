@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Grocery List - Oakley Family</title>
+	<link rel="icon" type="image/png" href="BestCalendarV3Favicon3.png">
+	<link rel="stylesheet" href="grocery.css">
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+	<script src="config.js"></script>
+</head>
+<body>
+	<!-- Login Screen -->
+	<div id="login-screen" style="display: none;">
+		<div class="login-container">
+			<h1>Grocery Login</h1>
+			<form id="login-form" onsubmit="handleLogin(event)">
+				<label for="login-email"><b>Email</b></label>
+				<input type="email" id="login-email" placeholder="Enter your email" required autofocus autocomplete="off">
+				<label for="login-password"><b>Password</b></label>
+				<input type="password" id="login-password" placeholder="Enter password" required autocomplete="off">
+				<button type="submit" class="btn-login">Login</button>
+				<div id="login-error" class="login-error" style="display: none;"></div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Grocery App -->
+	<div id="grocery-app" style="display: none;">
+		<div id="grocery-header">
+			<h1>🛒 Grocery List</h1>
+			<div class="header-buttons">
+				<select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
+					<option value="index.html">📅 Calendar</option>
+					<option value="todo.html">📝 Todos</option>
+					<option value="" selected>🛒 Grocery</option>
+				</select>
+				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+			</div>
+		</div>
+
+		<div id="grocery-main">
+			<!-- Sidebar for views -->
+			<div id="grocery-sidebar">
+				<div class="view-section">
+					<button class="view-btn active" data-view="active" onclick="switchView('active')">
+						<span class="view-icon">🛒</span>
+						<span class="view-text">Active</span>
+					</button>
+					<button class="view-btn" data-view="archive" onclick="switchView('archive')">
+						<span class="view-icon">📦</span>
+						<span class="view-text">Archive</span>
+					</button>
+				</div>
+			</div>
+
+		<!-- Content Area -->
+		<div id="grocery-content">
+			<div class="content-header">
+				<button class="add-item-btn-header" onclick="openAddItemForm()">
+					<span style="font-size: 1.2em;">+</span> Add Item
+				</button>
+				<h2 id="view-title">Active List</h2>
+				<button id="sort-button" class="sort-button" onclick="openSortMenu()">⚙️ Sort</button>
+			</div>
+
+			<div id="grocery-list-container">
+				<div id="grocery-list">
+					<!-- Items will be rendered here -->
+				</div>
+			</div>
+
+				<!-- Undo notification -->
+				<div id="undo-notification" class="undo-notification" style="display: none;">
+					<span id="undo-message"></span>
+					<button onclick="undoArchive()" class="btn-undo">Undo</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Add/Edit Item Form Modal -->
+		<div id="item-modal" class="modal" style="display: none;">
+			<div class="modal-content">
+				<span class="close" onclick="closeItemForm()">&times;</span>
+				<h2 id="modal-title">Add Grocery Item</h2>
+				<form id="item-form" onsubmit="handleItemSubmit(event)">
+					<label for="item-name">Item Name *</label>
+					<input type="text" id="item-name" placeholder="e.g., Milk, Bread, Apples" required autofocus>
+					
+				<label for="item-type">Type</label>
+				<select id="item-type">
+					<option value="food">🍙 Food</option>
+					<option value="cold">❄️ Cold</option>
+					<option value="not-food">🧹 Not Food</option>
+				</select>					<label for="item-description">Description (optional)</label>
+					<textarea id="item-description" placeholder="Additional details..." rows="3"></textarea>
+					
+					<label for="item-priority">Priority (optional)</label>
+					<select id="item-priority">
+						<option value="">No Priority</option>
+						<option value="high">High</option>
+						<option value="medium">Medium</option>
+						<option value="low">Low</option>
+					</select>
+					
+					<label for="item-labels">Labels (optional)</label>
+					<input type="text" id="item-labels" placeholder="e.g., organic, sale, bulk">
+					
+					<label for="item-due-date">Due Date (optional)</label>
+					<input type="date" id="item-due-date">
+					
+					<div class="form-buttons">
+						<button type="submit" class="btn-save">Save</button>
+						<button type="button" class="btn-cancel" onclick="closeItemForm()">Cancel</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Item Details Modal -->
+		<div id="details-modal" class="modal" style="display: none;">
+			<div class="modal-content details-content">
+				<span class="close" onclick="closeDetailsModal()">&times;</span>
+				<div id="details-body">
+					<!-- Details will be rendered here -->
+				</div>
+			</div>
+		</div>
+
+		<!-- Sort Modal -->
+		<div id="sort-modal" class="modal" style="display: none;">
+			<div class="modal-content sort-modal-content">
+				<div class="modal-header">
+					<h2>Sort Options</h2>
+					<span class="close" onclick="closeSortMenu()">&times;</span>
+				</div>
+				<div style="padding: 20px;">
+					<div class="form-row-split">
+						<div style="flex: 1;">
+							<label for="sort-select-modal">Sort by:</label>
+							<select id="sort-select-modal">
+								<option value="type">Type (Cold/Food/Not Food)</option>
+								<option value="priority">Priority</option>
+								<option value="due_date">Due Date</option>
+								<option value="name">Name</option>
+								<option value="created_at">Date Added</option>
+							</select>
+						</div>
+						<div style="display: flex; flex-direction: column; justify-content: flex-end;">
+							<button id="sort-direction-modal-btn" class="sort-direction-btn" onclick="toggleModalSortDirection()" title="Toggle sort direction">
+								↑
+							</button>
+						</div>
+					</div>
+					<div class="form-row-split">
+						<div style="flex: 1;">
+							<label for="sort-select-secondary-modal">Then by:</label>
+							<select id="sort-select-secondary-modal">
+								<option value="">None</option>
+								<option value="type">Type (Cold/Food/Not Food)</option>
+								<option value="priority">Priority</option>
+								<option value="due_date">Due Date</option>
+								<option value="name">Name</option>
+								<option value="created_at">Date Added</option>
+							</select>
+						</div>
+						<div style="display: flex; flex-direction: column; justify-content: flex-end;">
+							<button id="sort-direction-secondary-modal-btn" class="sort-direction-btn" onclick="toggleModalSecondarySortDirection()" title="Toggle secondary sort direction">
+								↑
+							</button>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="btn-apply-modal" onclick="applySortFromModal()">Apply</button>
+						<button class="btn-cancel-modal" onclick="closeSortMenu()">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="supabase.js"></script>
+	<script src="auth.js"></script>
+	<script src="grocery.js"></script>
+</body>
+</html>

@@ -625,6 +625,13 @@ async function renderCalendar() {
     const today = new Date();
     const todayButton = document.getElementById('today-button');
     if (todayButton) {
+      // Set button text based on screen size
+      if (window.innerWidth <= 767) {
+        todayButton.textContent = '+';
+      } else {
+        todayButton.textContent = 'Today';
+      }
+      
       if (currentView === 'week') {
         // In week view, show if not viewing current week
         const weekStart = new Date(date);
@@ -1908,4 +1915,12 @@ function initializeCalendar() {
     hidePicker();
     renderCalendar();
   });
+}
+
+// Handle navigation dropdown
+function handleNavigation(select) {
+  const value = select.value;
+  if (value) {
+    window.location.href = value;
+  }
 }

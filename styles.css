@@ -118,6 +118,33 @@ body {
     background-color: #444;
 }
 
+.nav-dropdown {
+    padding: 8px 12px;
+    background-color: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+    outline: none;
+}
+
+.nav-dropdown:hover {
+    background-color: #444;
+    border-color: #666;
+}
+
+.nav-dropdown:focus {
+    border-color: #777;
+    background-color: #3a3a3a;
+}
+
+.nav-dropdown option {
+    background-color: #333;
+    color: #e0e0e0;
+}
+
 #calendar {
     width: 100%;
     height: 100vh;
@@ -140,6 +167,18 @@ body {
     position: relative;
 }
 
+#header-left {
+    display: flex;
+    align-items: center;
+}
+
+#page-title {
+    color: #FF4F91;
+    font-size: 1.8em;
+    margin: 0;
+    white-space: nowrap;
+}
+
 #header-top {
     position: absolute;
     left: 50%;
@@ -159,6 +198,17 @@ body {
         flex-direction: column;
         justify-content: center;
         position: static;
+        gap: 8px;
+    }
+    
+    #header-left {
+        order: 1;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    #page-title {
+        font-size: 1.3em;
     }
     
     #header-top {
@@ -167,13 +217,81 @@ body {
         width: 100%;
         justify-content: center;
         display: flex;
+        order: 3;
     }
     
     #header-controls {
-        margin-top: 8px;
+        margin-top: 0;
         margin-left: 0;
         justify-content: center;
-        flex-wrap: wrap;
+        order: 2;
+        width: 100%;
+        gap: 10px;
+        display: grid;
+        grid-template-columns: 1fr auto auto 1fr;
+        grid-auto-flow: dense;
+        align-items: center;
+    }
+    
+    #header-controls .nav-dropdown {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    
+    #header-controls .logout-button {
+        grid-column: 3;
+        grid-row: 1;
+    }
+    
+    #header-controls .open-button {
+        display: none;
+    }
+    
+    /* Floating add button for mobile */
+    #calendar .open-button {
+        display: block;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        font-size: 24px;
+        padding: 0;
+        margin: 0;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(255, 79, 145, 0.5);
+    }
+    
+    #header-controls #today-button {
+        display: block;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        font-size: 24px;
+        padding: 0;
+        margin: 0;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(255, 79, 145, 0.5);
+    }
+    
+    /* Row 2 with 3 columns for navigation controls */
+    #header-controls #month-prev {
+        grid-column: 2;
+        grid-row: 2;
+    }
+    
+    #header-controls .view-selector {
+        grid-column: 3;
+        grid-row: 2;
+    }
+    
+    #header-controls #month-next {
+        grid-column: 4;
+        grid-row: 2;
     }
     
     /* Hide event times on mobile */
@@ -196,6 +314,11 @@ body {
         -webkit-box-orient: vertical !important;
         line-height: 1.15 !important;
         word-break: break-word !important;
+    }
+    
+    /* For days with 3+ events, show all events with only 1 line */
+    #calendar-body div.day-cell:has(.event-item:nth-child(4)) .event-item .event-title {
+        -webkit-line-clamp: 1 !important;
     }
     
     /* Shrink text sizes for better readability on mobile */
@@ -609,7 +732,7 @@ body {
     margin: 4px 0;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.18);
-    font-size: 0.9em;
+    font-size: 0.72em;
     white-space: normal;
     overflow: hidden;
     text-overflow: clip;

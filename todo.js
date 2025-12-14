@@ -689,6 +689,12 @@ async function deleteTodoItem(event, todoId) {
   }
 }
 
+// Edit a todo from the list item
+function editTodoItem(event, todoId) {
+  event.stopPropagation();
+  openTodoForm(todoId);
+}
+
 // Archive a todo
 async function archiveTodoItem(event, todoId) {
   event.stopPropagation();
@@ -912,8 +918,8 @@ function renderTodoItem(todo) {
     : '';
   
   const archiveBtn = currentView === 'archive'
-    ? `<button class="todo-action-btn" onclick="unarchiveTodoItem(event, ${todo.id})" title="Unarchive">📤</button>`
-    : `<button class="todo-action-btn" onclick="archiveTodoItem(event, ${todo.id})" title="Archive">📦</button>`;
+    ? `<button class="todo-action-btn archive" onclick="unarchiveTodoItem(event, ${todo.id})" title="Unarchive">📤</button>`
+    : `<button class="todo-action-btn archive" onclick="archiveTodoItem(event, ${todo.id})" title="Archive">📦</button>`;
   
   return `
     <div class="todo-item ${importanceClass} ${completedClass} ${dueTodayClass} ${overdueClass}" onclick="openTodoDetail(${todo.id})">
@@ -930,8 +936,13 @@ function renderTodoItem(todo) {
         ${labelsHtml}
       </div>
       <div class="todo-actions">
-        ${archiveBtn}
-        <button class="todo-action-btn delete" onclick="deleteTodoItem(event, ${todo.id})" title="Delete">🗑️</button>
+        <div class="todo-actions-row" style="justify-content: flex-end;">
+          <button class="todo-action-btn edit" onclick="editTodoItem(event, ${todo.id})" title="Edit">✏️</button>
+        </div>
+        <div class="todo-actions-row">
+          ${archiveBtn}
+          <button class="todo-action-btn delete" onclick="deleteTodoItem(event, ${todo.id})" title="Delete">🗑️</button>
+        </div>
       </div>
     </div>
   `;
@@ -1051,4 +1062,12 @@ function applySortFromModal() {
 // Override the calendar's initializeCalendar to call todo initialization instead
 function initializeCalendar() {
   initializeTodoApp();
+}
+
+// Navigation dropdown handler
+function handleNavigation(select) {
+  const value = select.value;
+  if (value) {
+    window.location.href = value;
+  }
 }

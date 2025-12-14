@@ -99,15 +99,19 @@ async function handleLogin(event) {
 function showCalendar() {
   document.getElementById('login-screen').style.display = 'none';
   
-  // Check which app is present (calendar or todo)
+  // Check which app is present (calendar, todo, or grocery)
   const calendarEl = document.getElementById('calendar');
   const todoEl = document.getElementById('todo-app');
+  const groceryEl = document.getElementById('grocery-app');
   
   if (calendarEl) {
     calendarEl.style.display = 'flex';
   }
   if (todoEl) {
     todoEl.style.display = 'flex';
+  }
+  if (groceryEl) {
+    groceryEl.style.display = 'flex';
   }
 }
 
@@ -118,12 +122,16 @@ function showLogin() {
   // Hide whichever app is present
   const calendarEl = document.getElementById('calendar');
   const todoEl = document.getElementById('todo-app');
+  const groceryEl = document.getElementById('grocery-app');
   
   if (calendarEl) {
     calendarEl.style.display = 'none';
   }
   if (todoEl) {
     todoEl.style.display = 'none';
+  }
+  if (groceryEl) {
+    groceryEl.style.display = 'none';
   }
   
   // Clear password field
