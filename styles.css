@@ -1,3 +1,158 @@
+@media (max-width: 767px) {
+    .nav-dropdown {
+        font-size: 0.65em;
+        padding: 4px 4px;
+        min-width: 70px;
+        max-width: 110px;
+        height: 20px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+}
+@media (max-width: 767px) {
+    .nav-dropdown {
+        font-size: 0.85em;
+        padding: 4px 8px;
+        min-width: 70px;
+        max-width: 110px;
+        height: 28px;
+        border-radius: 4px;
+    }
+}
+#event-detail-modal .event-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+#event-detail-modal .event-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+#event-detail-modal .event-edit-btn,
+#event-detail-modal .event-delete-btn {
+    background: none;
+    border: none;
+    font-size: 1.15em;
+    color: #aaa;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+}
+#event-detail-modal .event-edit-btn:hover {
+    color: #FF4F91;
+    background: #23272e;
+}
+#event-detail-modal .event-delete-btn:hover {
+    color: #ff3b3b;
+    background: #23272e;
+}
+#event-detail-modal .modal-back {
+    background: none;
+    border: none;
+    font-size: 1.25em;
+    color: #aaa;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: color 0.2s;
+}
+#event-detail-modal .modal-back:hover {
+    color: #FF4F91;
+}
+#event-detail-modal .event-times {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 0.98em;
+    color: #b7b7b7;
+}
+#event-detail-modal .event-location {
+    font-size: 0.97em;
+    color: #b7b7b7;
+    margin-bottom: 4px;
+}
+#event-detail-modal .event-description {
+    font-size: 0.97em;
+    color: #b7b7b7;
+    margin-bottom: 2px;
+}
+/* Day Details Modal Styles */
+#event-detail-modal .modal-content {
+    background: #23272e;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    padding: 24px 20px 18px 20px;
+    max-width: 380px;
+    margin: 40px auto;
+    color: #fff;
+}
+#event-detail-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+#event-detail-modal .modal-title {
+    font-size: 1.35em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+#event-detail-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+#event-detail-modal .modal-close:hover {
+    color: #FF4F91;
+}
+#event-detail-modal .modal-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+#event-detail-modal .modal-event-item {
+    background: #1b1b1b;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 14px 12px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    border: 2px solid #31363f;
+    border-left: 4px solid #FF4F91;
+}
+#event-detail-modal .modal-event-item:hover {
+    background: #31363f;
+    box-shadow: 0 4px 16px rgba(255,79,145,0.08);
+}
+#event-detail-modal .event-title {
+    font-size: 1.08em;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #FF4F91;
+    letter-spacing: 0.01em;
+}
+#event-detail-modal .event-time {
+    font-size: 0.98em;
+    color: #b7b7b7;
+    margin-left: 2px;
+}
+#event-detail-modal .no-events {
+    color: #b7b7b7;
+    font-size: 1.05em;
+    text-align: center;
+    margin: 24px 0 10px 0;
+}
 html, body {
     height: 100%;
     margin: 0; /* remove default white-space around the page */
@@ -170,6 +325,7 @@ body {
 #header-left {
     display: flex;
     align-items: center;
+    gap: 12px;
 }
 
 #page-title {
@@ -194,6 +350,62 @@ body {
 
 /* Mobile layout - stacked rows */
 @media (max-width: 767px) {
+                    #calendar-body .day-cell {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: stretch;
+                        width: 100%;
+                        box-sizing: border-box;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        min-width: 0;
+                    }
+                /* Month view: event boxes fill day cell horizontally */
+                #calendar-body .day-cell .event-item {
+                    display: block;
+                    width: 100%;
+                    box-sizing: border-box;
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    border-radius: 6px;
+                    min-width: 0;
+                }
+            #week-grid .week-event .event-time {
+                display: block;
+                width: 100%;
+                height: auto;
+                writing-mode: vertical-lr;
+                transform: none;
+                text-align: left;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 0.75em;
+                padding: 0 2px 0 0;
+                line-height: 1.1;
+                box-sizing: border-box;
+                /* vertical-align removed: not needed for block */
+                background: none;
+                margin-bottom: 6px;
+            }
+        /* Rotate event titles in week view events */
+        #week-grid .week-event .event-title {
+            display: block;
+            width: 100%;
+            height: 100%;
+            writing-mode: vertical-lr;
+            transform: none;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.85em;
+            padding: 0 2px;
+            line-height: 1.1;
+            box-sizing: border-box;
+            /* vertical-align removed: not needed for block */
+            background: none;
+        }
     #calendar-header {
         flex-direction: column;
         justify-content: center;
@@ -205,6 +417,24 @@ body {
         order: 1;
         width: 100%;
         justify-content: center;
+        gap: 8px;
+    }
+
+    #header-left #today-button {
+        /* display controlled by JS */
+        position: static !important;
+        width: auto !important;
+        height: 32px !important;
+        min-width: 48px;
+        font-size: 1em;
+        margin: 0 0 0 2px;
+        border-radius: 6px;
+        box-shadow: none;
+        background: #222;
+        color: #FF4F91;
+        border: 1px solid #444;
+        vertical-align: middle;
+        padding: 0 10px;
     }
     
     #page-title {
@@ -218,6 +448,20 @@ body {
         justify-content: center;
         display: flex;
         order: 3;
+    }
+
+    /* Shrink week label in week view */
+    #header-top h1#month {
+        font-size: 1.05em !important;
+        padding: 2px 0 !important;
+        margin: 0 !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.1 !important;
+        max-width: 90vw;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     #header-controls {
@@ -311,6 +555,7 @@ body {
         text-overflow: ellipsis !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
+        line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         line-height: 1.15 !important;
         word-break: break-word !important;
@@ -319,6 +564,7 @@ body {
     /* For days with 3+ events, show all events with only 1 line */
     #calendar-body div.day-cell:has(.event-item:nth-child(4)) .event-item .event-title {
         -webkit-line-clamp: 1 !important;
+        line-clamp: 1 !important;
     }
     
     /* Shrink text sizes for better readability on mobile */
@@ -346,17 +592,30 @@ body {
     #week-view-container {
         height: 100vh !important;
     }
-    
+
     #timeline {
         height: 100% !important;
     }
-    
+
     #week-grid {
         height: 100% !important;
+        grid-template-rows: auto repeat(25, 28px) !important;
     }
-    
+
+    .timeline-hour {
+        height: 28px !important;
+        font-size: 0.7em !important;
+    }
+
     #week-grid .week-day-column {
         min-height: 100% !important;
+    }
+
+    .week-event {
+        min-height: 16px !important;
+        font-size: 0.8em !important;
+        padding: 1px 2px !important;
+        border-radius: 3px !important;
     }
 }
 

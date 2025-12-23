@@ -1,3 +1,9 @@
+// Re-render calendar on window resize to keep event alignment correct
+window.addEventListener('resize', () => {
+  if (document.getElementById('calendar')?.style.display !== 'none') {
+    renderCalendar();
+  }
+});
 let date = new Date();
 let calendarEvents = []; // Store events for the current month view
 let currentView = localStorage.getItem('calendar_view') || 'month'; // 'month' or 'week'
@@ -388,6 +394,10 @@ async function renderWeekView() {
         const dateStr = currentDate.toISOString().split('T')[0];
         const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
         const dayNum = currentDate.getDate();
+        let monthLabel = '';
+        if (dayNum === 1) {
+          monthLabel = currentDate.toLocaleDateString('en-US', { month: 'short' });
+        }
         
         // Check if it's today
         const todayCheck = new Date();
@@ -462,26 +472,30 @@ async function renderWeekView() {
         let eventsHtml = '';
         
         // First, calculate positions for all events to detect overlaps
+        // Responsive hour height: 28px on mobile, 50px on desktop
+        const isMobile = window.innerWidth <= 767;
+        const hourHeight = isMobile ? 28 : 50;
+        const minEventHeight = isMobile ? 10 : 20;
         const eventPositions = timedEvents.map((evt) => {
-            let top = 0;
-            let height = 50;
-            
-            if (evt.effectiveStartTime) {
-                const [startHour, startMin] = evt.effectiveStartTime.split(':').map(Number);
-                top = (startHour * 50) + (startMin * 50 / 60);
-                
-                if (evt.effectiveEndTime) {
-                    const [endHour, endMin] = evt.effectiveEndTime.split(':').map(Number);
-                    const endMinutes = (endHour * 60) + endMin;
-                    const startMinutes = (startHour * 60) + startMin;
-                    const durationMinutes = endMinutes - startMinutes;
-                    height = Math.max((durationMinutes * 50 / 60), 20);
-                } else {
-                    height = 50;
-                }
+          let top = 0;
+          let height = hourHeight;
+
+          if (evt.effectiveStartTime) {
+            const [startHour, startMin] = evt.effectiveStartTime.split(':').map(Number);
+            top = (startHour * hourHeight) + (startMin * hourHeight / 60);
+
+            if (evt.effectiveEndTime) {
+              const [endHour, endMin] = evt.effectiveEndTime.split(':').map(Number);
+              const endMinutes = (endHour * 60) + endMin;
+              const startMinutes = (startHour * 60) + startMin;
+              const durationMinutes = endMinutes - startMinutes;
+              height = Math.max((durationMinutes * hourHeight / 60), minEventHeight);
+            } else {
+              height = hourHeight;
             }
-            
-            return { top, height, bottom: top + height };
+          }
+
+          return { top, height, bottom: top + height };
         });
         
         timedEvents.forEach((evt, idx) => {
@@ -523,19 +537,28 @@ async function renderWeekView() {
         
         // Add header and all-day section wrapper as grid item at row 1
         gridHtml += `
-            <div class="week-day-header-wrapper" style="grid-row: 1; grid-column: ${i + 2};">
-                <div class="week-day-header">
-                    <div class="day-name">${dayName}</div>
-                    <div class="day-number${isToday ? ' today' : ''}">${dayNum}</div>
-                </div>
-                <div class="week-allday-section" style="height: ${allDaySectionHeight}px; min-height: ${allDaySectionHeight}px; max-height: ${allDaySectionHeight}px;">
-                    ${allDayHtml}
-                </div>
+          <div class="week-day-header-wrapper" style="grid-row: 1; grid-column: ${i + 2};">
+            <div class="week-day-header">
+              <div class="day-name">${dayName}</div>
+              <div class="day-number${isToday ? ' today' : ''}">${monthLabel ? monthLabel + ' ' : ''}${dayNum}</div>
             </div>
+            <div class="week-allday-section" style="height: ${allDaySectionHeight}px; min-height: ${allDaySectionHeight}px; max-height: ${allDaySectionHeight}px;">
+              ${allDayHtml}
+            </div>
+          </div>
         `;
         
+        // Add thick pink border if next day is in a different month
+        let borderStyle = '';
+        if (i < 6) {
+          const nextDate = new Date(weekStart);
+          nextDate.setDate(weekStart.getDate() + i + 1);
+          if (nextDate.getMonth() !== currentDate.getMonth()) {
+            borderStyle = 'border-right: 2px solid #FFB6D5;';
+          }
+        }
         gridHtml += `
-            <div class="week-day-column${isToday ? ' today' : ''}" data-date="${dateStr}" style="grid-row: 2 / 27; grid-column: ${i + 2};">
+            <div class="week-day-column${isToday ? ' today' : ''}" data-date="${dateStr}" style="grid-row: 2 / 27; grid-column: ${i + 2};${borderStyle}">
                 ${eventsHtml}
             </div>
         `;
@@ -625,12 +648,8 @@ async function renderCalendar() {
     const today = new Date();
     const todayButton = document.getElementById('today-button');
     if (todayButton) {
-      // Set button text based on screen size
-      if (window.innerWidth <= 767) {
-        todayButton.textContent = '+';
-      } else {
-        todayButton.textContent = 'Today';
-      }
+      // Always show 'Today' text, even on mobile
+      todayButton.textContent = 'Today';
       
       if (currentView === 'week') {
         // In week view, show if not viewing current week
@@ -830,10 +849,8 @@ function attachEventItemListeners() {
     
     newItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      const eventId = newItem.getAttribute('data-event-id');
       const dayStr = newItem.getAttribute('data-day');
-      const eventIdx = newItem.getAttribute('data-event-idx');
-      showEventModal(eventId, dayStr, eventIdx);
+      showDayDetailsModal(dayStr);
     });
   });
 }
@@ -884,8 +901,8 @@ function attachDayCellListeners() {
       const day = String(targetDate.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
       
-      // Pre-fill the form with the selected date and open it
-      openFormWithDate(dateStr);
+      // Show day details modal listing all events for that day
+      showDayDetailsModal(dateStr);
     });
   });
 }
@@ -937,11 +954,13 @@ function showEventModal(eventId, dayStr, eventIdx) {
     console.error('Error formatting recurrence pattern:', e);
   }
   
+  window._lastDayDetails = dayStr;
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
         <h2 class="modal-title">${escapeHtml(event.title || 'Event')}</h2>
         <div>
+          <button class="modal-back" onclick="showDayDetailsModal(window._lastDayDetails)" title="Back to day details">←</button>
           <button class="modal-delete" onclick="${deleteHandler}">🗑</button>
           <button class="modal-duplicate" onclick="duplicateEvent('${escapeHtml(String(event.id))}','${dayStr}','${eventIdx}')">🗍</button>
           <button class="modal-edit" onclick="startEditEvent('${escapeHtml(String(event.id))}','${dayStr}','${eventIdx}')">✎</button>

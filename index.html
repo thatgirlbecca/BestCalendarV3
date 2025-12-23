@@ -28,27 +28,26 @@
 	<div id="calendar" style="display: none;">
 		<div id="calendar-header">
 			<div id="header-left">
-				<h2 id="page-title">📅 Calendar</h2>
+				<button id="month-prev" class="change-month">&lt;</button>
+				<select id="view-selector" class="view-selector" onchange="handleViewChange()" title="Change View">
+					<option value="month">Month</option>
+					<option value="week">Week</option>
+				</select>
+				<button id="month-next" class="change-month">&gt;</button>
+				<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
 			</div>
 			<div id="header-top">
 				<h1 id="month">November 2025</h1>
 			</div>
-		<div id="header-controls">
-			<button class="open-button" onclick="openForm()">+</button>
-			<button id="today-button" class="open-button" onclick="goToToday()" style="display: none;">Today</button>
-			<button id="month-prev" class="change-month">&lt;</button>
-			<select id="view-selector" class="view-selector" onchange="handleViewChange()" title="Change View">
-				<option value="month">Month</option>
-				<option value="week">Week</option>
-			</select>
-			<button id="month-next" class="change-month">&gt;</button>
-			<select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
-				<option value="" selected>📅 Calendar</option>
-				<option value="todo.html">📝 Todos</option>
-				<option value="grocery.html">🛒 Grocery</option>
-			</select>
-			<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
-		</div>
+			<div id="header-controls">
+				<button class="open-button" onclick="openForm()">+</button>
+				<select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
+					<option value="" selected>📅 Calendar</option>
+					<option value="todo.html">📝 Todos</option>
+					<option value="grocery.html">🛒 Grocery</option>
+				</select>
+				<button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+			</div>
 			<div id="month-year-picker" class="hidden" aria-hidden="true">
 				<label for="year-select">Year</label>
 				<select id="year-select"></select>
@@ -225,6 +224,7 @@
 		</div>
 	</div>
 	
+	<script src="dayDetailsModal.js"></script>
 	<script src="supabase.js"></script>
 	<script src="calendar.js"></script>
 	<script src="auth.js"></script>
