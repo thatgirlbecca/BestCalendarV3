@@ -1,3 +1,11 @@
+  // Recurrence popup apply button
+  const applyRecurrenceBtn = document.getElementById('apply-recurrence-btn');
+  if (applyRecurrenceBtn) {
+    applyRecurrenceBtn.addEventListener('click', () => {
+      // Just close the popup, as the fields are already bound to the form
+      closeRecurrencePopup();
+    });
+  }
 // todo.js - Todo list functionality with full features
 
 let todos = [];
@@ -40,12 +48,18 @@ async function initializeTodoApp() {
 
 // Setup event listeners
 function setupEventListeners() {
-  // Recurring checkbox toggle
-  const recurringCheckbox = document.getElementById('todo-recurring');
-  recurringCheckbox.addEventListener('change', (e) => {
-    const section = document.getElementById('recurrence-section');
-    section.style.display = e.target.checked ? 'block' : 'none';
-  });
+  // Recurrence popup button
+  const recurrenceBtn = document.getElementById('open-recurrence-popup');
+  const recurrencePopup = document.getElementById('recurrence-popup');
+  if (recurrenceBtn) {
+    recurrenceBtn.addEventListener('click', () => {
+      if (recurrencePopup) recurrencePopup.style.display = 'block';
+    });
+  }
+
+  window.closeRecurrencePopup = function() {
+    if (recurrencePopup) recurrencePopup.style.display = 'none';
+  };
 
   // Recurrence rule change
   const ruleSelect = document.getElementById('todo-recurrence-rule');
@@ -280,10 +294,11 @@ function openTodoForm(todoId = null) {
   
   form.reset();
   
-  // Always hide recurrence section initially for new todos
-  if (!todoId) {
-    document.getElementById('recurrence-section').style.display = 'none';
-  }
+  // Always show recurrence section in popup, hide in form
+  document.getElementById('recurrence-section').style.display = 'block';
+  // Hide the popup by default
+  const recurrencePopup = document.getElementById('recurrence-popup');
+  if (recurrencePopup) recurrencePopup.style.display = 'none';
   
   if (todoId) {
     // Editing existing todo
@@ -298,7 +313,6 @@ function openTodoForm(todoId = null) {
       document.getElementById('todo-labels').value = (todo.labels || []).join(', ');
       
       if (todo.recurrence_rule) {
-        document.getElementById('todo-recurring').checked = true;
         document.getElementById('recurrence-section').style.display = 'block';
         document.getElementById('todo-recurrence-type').value = todo.recurrence_type || 'schedule';
         document.getElementById('todo-recurrence-rule').value = todo.recurrence_rule;
@@ -576,89 +590,71 @@ async function saveTodo(event) {
   const labelsInput = document.getElementById('todo-labels').value;
   const labels = labelsInput ? labelsInput.split(',').map(l => l.trim()).filter(l => l) : [];
   
-  const isRecurring = document.getElementById('todo-recurring').checked;
-  let recurrenceData = {};
-  
-  if (isRecurring) {
-    const rule = document.getElementById('todo-recurrence-rule').value;
-    const recurrenceType = document.getElementById('todo-recurrence-type').value;
-    const interval = parseInt(document.getElementById('todo-recurrence-interval').value);
-    const endType = document.querySelector('input[name="recurrence-end-type"]:checked')?.value;
-    
-    let endDate = null;
-    let count = null;
-    
-    if (endType === 'date') {
-      endDate = document.getElementById('todo-recurrence-end').value;
-    } else if (endType === 'count') {
-      count = parseInt(document.getElementById('todo-recurrence-count').value);
-    }
-    
-    recurrenceData = {
-      recurrenceRule: rule,
-      recurrenceType: recurrenceType,
-      recurrenceInterval: interval,
-      recurrenceEndDate: endDate,
-      recurrenceCount: count
-    };
-    
-    if (rule === 'CUSTOM_DAYS') {
-      const selectedDays = Array.from(
-        document.querySelectorAll('#custom-days-section input:checked')
-      ).map(cb => cb.value);
-      recurrenceData.recurrenceDays = selectedDays;
-    }
+  // Determine if recurrence is set by checking if any recurrence fields are filled
+  const rule = document.getElementById('todo-recurrence-rule').value;
+  const recurrenceType = document.getElementById('todo-recurrence-type').value;
+  const interval = parseInt(document.getElementById('todo-recurrence-interval').value);
+  const endType = document.querySelector('input[name="recurrence-end-type"]:checked')?.value;
+  let endDate = null;
+  let count = null;
+  if (endType === 'date') {
+    endDate = document.getElementById('todo-recurrence-end').value;
+  } else if (endType === 'count') {
+    count = parseInt(document.getElementById('todo-recurrence-count').value);
   }
-  
+  let recurrenceDays = null;
+  if (rule === 'CUSTOM_DAYS') {
+    const selectedDays = Array.from(
+      document.querySelectorAll('#custom-days-section input:checked')
+    ).map(cb => cb.value);
+    recurrenceDays = selectedDays;
+  }
+  // If the user has selected a rule (not blank), treat as recurring
+  const isRecurring = !!rule;
+  // Unify data for both create and update
   const todoData = {
     text,
     description,
-    start_date: startDate || null,
-    due_date: dueDate || null,
     importance,
     labels,
-    ...(isRecurring ? {
-      recurrence_rule: recurrenceData.recurrenceRule,
-      recurrence_type: recurrenceData.recurrenceType,
-      recurrence_interval: recurrenceData.recurrenceInterval,
-      recurrence_end_date: recurrenceData.recurrenceEndDate,
-      recurrence_count: recurrenceData.recurrenceCount,
-      recurrence_days: recurrenceData.recurrenceDays || null
-    } : {
-      recurrence_rule: null,
-      recurrence_type: 'schedule',
-      recurrence_interval: null,
-      recurrence_end_date: null,
-      recurrence_count: null,
-      recurrence_days: null
-    })
+    start_date: startDate || null,
+    due_date: dueDate || null,
+    recurrence_rule: isRecurring ? rule : null,
+    recurrence_type: isRecurring ? recurrenceType : 'schedule',
+    recurrence_interval: isRecurring ? interval : null,
+    recurrence_end_date: isRecurring ? endDate : null,
+    recurrence_count: isRecurring ? count : null,
+    recurrence_days: isRecurring ? (recurrenceDays || null) : null
   };
-  
+
+  let result;
   if (editingTodoId) {
-    // Update existing todo
-    const result = await updateTodo(editingTodoId, todoData);
-    if (!result) {
-      alert('Error updating todo. Check console for details.');
-      return;
-    }
+    // Update existing todo (updateTodo expects snake_case)
+    result = await updateTodo(editingTodoId, todoData);
   } else {
-    // Create new todo - use createTodo which expects camelCase
+    // Create new todo (createTodo expects camelCase)
     const createData = {
       text,
       description,
-      startDate,
-      dueDate,
       importance,
       labels,
-      ...recurrenceData
+      startDate: startDate || null,
+      dueDate: dueDate || null,
+      recurrenceRule: isRecurring ? rule : null,
+      recurrenceType: isRecurring ? recurrenceType : 'schedule',
+      recurrenceInterval: isRecurring ? interval : null,
+      recurrenceEndDate: isRecurring ? endDate : null,
+      recurrenceCount: isRecurring ? count : null,
+      recurrenceDays: isRecurring ? (recurrenceDays || null) : null
     };
-    const result = await createTodo(createData);
-    if (!result) {
-      alert('Error creating todo. Check console for details.');
-      return;
-    }
+    result = await createTodo(createData);
   }
-  
+
+  if (!result) {
+    alert('Error saving todo. Check console for details.');
+    return;
+  }
+
   closeTodoForm();
   await loadTodos();
 }

@@ -147,74 +147,79 @@
 				</div>
 
 				<div class="form-row">
-					<label>
-						<input type="checkbox" id="todo-recurring"> Recurring Task
-					</label>
+					<button type="button" id="open-recurrence-popup" style="margin-left:0;">Recurrence Settings</button>
 				</div>
 
-				<div id="recurrence-section" style="display: none;">
-					<div class="form-row">
-						<label for="todo-recurrence-type">Recurrence Type</label>
-						<select id="todo-recurrence-type">
-							<option value="schedule">On Schedule (fixed dates, like "every Wednesday")</option>
-							<option value="after_completion">After Completion (e.g., "3 days after I complete it")</option>
-						</select>
+				<!-- Recurrence Popup Modal -->
+				<div id="recurrence-popup" class="modal" style="display:none;">
+				  <div class="modal-content recurrence-modal-content">
+										<div class="modal-header">
+											<h2>Recurrence Settings</h2>
+											<span class="close" onclick="closeRecurrencePopup()">&times;</span>
+										</div>
+										<div id="recurrence-section" style="margin-bottom: 32px;">
+					  <div class="form-row">
+						  <label for="todo-recurrence-type">Recurrence Type</label>
+						  <select id="todo-recurrence-type">
+							  <option value="schedule">On Schedule (fixed dates, like 'every Wednesday')</option>
+							  <option value="after_completion">After Completion (e.g., '3 days after I complete it')</option>
+						  </select>
+										</div>
+										<div class="form-actions recurrence-popup-actions">
+											<button type="button" class="btn-cancel" onclick="closeRecurrencePopup()">Cancel</button>
+											<button type="button" class="btn-save" id="apply-recurrence-btn">Apply</button>
+										</div>
+					  <div class="form-row">
+						  <label for="todo-recurrence-rule">Repeat</label>
+						  <select id="todo-recurrence-rule">
+							  <option value="DAILY">Daily</option>
+							  <option value="WEEKLY">Weekly</option>
+							  <option value="MONTHLY">Monthly</option>
+							  <option value="YEARLY">Yearly</option>
+							  <option value="CUSTOM_DAYS">Custom Days</option>
+						  </select>
+					  </div>
+					  <div class="form-row">
+						  <label for="todo-recurrence-interval">Every</label>
+						  <input type="number" id="todo-recurrence-interval" min="1" value="1">
+						  <span id="interval-label">day(s)</span>
+					  </div>
+					  <div id="custom-days-section" style="display: none;">
+						  <label>Days of Week</label>
+						  <div class="checkbox-row">
+							  <label><input type="checkbox" value="Sunday"> Sun</label>
+							  <label><input type="checkbox" value="Monday"> Mon</label>
+							  <label><input type="checkbox" value="Tuesday"> Tue</label>
+							  <label><input type="checkbox" value="Wednesday"> Wed</label>
+							  <label><input type="checkbox" value="Thursday"> Thu</label>
+							  <label><input type="checkbox" value="Friday"> Fri</label>
+							  <label><input type="checkbox" value="Saturday"> Sat</label>
+						  </div>
+					  </div>
+					  <div class="form-row">
+						  <label>End After</label>
+						  <div style="display: flex; gap: 10px; align-items: center;">
+							  <label style="display: flex; align-items: center; gap: 4px;">
+								  <input type="radio" name="recurrence-end-type" value="never" checked> Never
+							  </label>
+							  <label style="display: flex; align-items: center; gap: 4px;">
+								  <input type="radio" name="recurrence-end-type" value="date"> On Date
+							  </label>
+							  <label style="display: flex; align-items: center; gap: 4px;">
+								  <input type="radio" name="recurrence-end-type" value="count"> After
+							  </label>
+						  </div>
+					  </div>
+					  <div class="form-row" id="recurrence-end-date-section" style="display: none;">
+						  <label for="todo-recurrence-end">End Date</label>
+						  <input type="date" id="todo-recurrence-end">
+					  </div>
+					  <div class="form-row" id="recurrence-count-section" style="display: none;">
+						  <label for="todo-recurrence-count">Number of Occurrences</label>
+						  <input type="number" id="todo-recurrence-count" min="1" value="10" placeholder="e.g., 10">
+					  </div>
 					</div>
-
-					<div class="form-row">
-						<label for="todo-recurrence-rule">Repeat</label>
-						<select id="todo-recurrence-rule">
-							<option value="DAILY">Daily</option>
-							<option value="WEEKLY">Weekly</option>
-							<option value="MONTHLY">Monthly</option>
-							<option value="YEARLY">Yearly</option>
-							<option value="CUSTOM_DAYS">Custom Days</option>
-						</select>
-					</div>
-
-					<div class="form-row">
-						<label for="todo-recurrence-interval">Every</label>
-						<input type="number" id="todo-recurrence-interval" min="1" value="1">
-						<span id="interval-label">day(s)</span>
-					</div>
-
-					<div id="custom-days-section" style="display: none;">
-						<label>Days of Week</label>
-						<div class="checkbox-row">
-							<label><input type="checkbox" value="Sunday"> Sun</label>
-							<label><input type="checkbox" value="Monday"> Mon</label>
-							<label><input type="checkbox" value="Tuesday"> Tue</label>
-							<label><input type="checkbox" value="Wednesday"> Wed</label>
-							<label><input type="checkbox" value="Thursday"> Thu</label>
-							<label><input type="checkbox" value="Friday"> Fri</label>
-							<label><input type="checkbox" value="Saturday"> Sat</label>
-						</div>
-					</div>
-
-					<div class="form-row">
-						<label>End After</label>
-						<div style="display: flex; gap: 10px; align-items: center;">
-							<label style="display: flex; align-items: center; gap: 4px;">
-								<input type="radio" name="recurrence-end-type" value="never" checked> Never
-							</label>
-							<label style="display: flex; align-items: center; gap: 4px;">
-								<input type="radio" name="recurrence-end-type" value="date"> On Date
-							</label>
-							<label style="display: flex; align-items: center; gap: 4px;">
-								<input type="radio" name="recurrence-end-type" value="count"> After
-							</label>
-						</div>
-					</div>
-
-					<div class="form-row" id="recurrence-end-date-section" style="display: none;">
-						<label for="todo-recurrence-end">End Date</label>
-						<input type="date" id="todo-recurrence-end">
-					</div>
-
-					<div class="form-row" id="recurrence-count-section" style="display: none;">
-						<label for="todo-recurrence-count">Number of Occurrences</label>
-						<input type="number" id="todo-recurrence-count" min="1" value="10" placeholder="e.g., 10">
-					</div>
+				  </div>
 				</div>
 
 				<div class="form-actions">
