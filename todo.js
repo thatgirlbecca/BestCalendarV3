@@ -49,17 +49,100 @@ async function initializeTodoApp() {
 // Setup event listeners
 function setupEventListeners() {
   // Recurrence popup button
+
   const recurrenceBtn = document.getElementById('open-recurrence-popup');
   const recurrencePopup = document.getElementById('recurrence-popup');
+  // Store original values to restore if cancelled, and clear recurrence fields if not applied
+  let originalRecurrenceState = null;
   if (recurrenceBtn) {
     recurrenceBtn.addEventListener('click', () => {
+      // Save current values
+      originalRecurrenceState = {
+        type: document.getElementById('todo-recurrence-type').value,
+        rule: document.getElementById('todo-recurrence-rule').value,
+        interval: document.getElementById('todo-recurrence-interval').value,
+        endType: document.querySelector('input[name="recurrence-end-type"]:checked')?.value,
+        endDate: document.getElementById('todo-recurrence-end').value,
+        count: document.getElementById('todo-recurrence-count').value,
+        customDays: Array.from(document.querySelectorAll('#custom-days-section input:checked')).map(cb => cb.value)
+      };
       if (recurrencePopup) recurrencePopup.style.display = 'block';
     });
   }
 
-  window.closeRecurrencePopup = function() {
+  // Helper to restore original values
+  function restoreRecurrenceState() {
+    if (!originalRecurrenceState) return;
+    document.getElementById('todo-recurrence-type').value = originalRecurrenceState.type;
+    document.getElementById('todo-recurrence-rule').value = originalRecurrenceState.rule;
+    document.getElementById('todo-recurrence-interval').value = originalRecurrenceState.interval;
+    if (originalRecurrenceState.endType) {
+      const radio = document.querySelector('input[name="recurrence-end-type"][value="' + originalRecurrenceState.endType + '"]');
+      if (radio) radio.checked = true;
+    }
+    document.getElementById('todo-recurrence-end').value = originalRecurrenceState.endDate;
+    document.getElementById('todo-recurrence-count').value = originalRecurrenceState.count;
+    // Uncheck all custom days first
+    document.querySelectorAll('#custom-days-section input[type="checkbox"]').forEach(cb => cb.checked = false);
+    // Re-check original custom days
+    if (originalRecurrenceState.customDays) {
+      originalRecurrenceState.customDays.forEach(day => {
+        const cb = document.querySelector('#custom-days-section input[value="' + day + '"]');
+        if (cb) cb.checked = true;
+      });
+    }
+    updateRecurrenceUI();
+    updateRecurrenceEndUI();
+  }
+
+  // Helper to clear recurrence fields
+  function clearRecurrenceFields() {
+    document.getElementById('todo-recurrence-type').value = 'schedule';
+    document.getElementById('todo-recurrence-rule').value = '';
+    document.getElementById('todo-recurrence-interval').value = 1;
+    document.querySelector('input[name="recurrence-end-type"][value="never"]').checked = true;
+    document.getElementById('todo-recurrence-end').value = '';
+    document.getElementById('todo-recurrence-count').value = '';
+    document.querySelectorAll('#custom-days-section input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateRecurrenceUI();
+    updateRecurrenceEndUI();
+  }
+
+  // Override closeRecurrencePopup to restore state if not applied
+  window.closeRecurrencePopup = function(cancelled = true) {
     if (recurrencePopup) recurrencePopup.style.display = 'none';
+    if (cancelled) {
+      // If the original state was empty (no recurrence), clear fields
+      if (
+        (!originalRecurrenceState.rule || originalRecurrenceState.rule === '') &&
+        (!originalRecurrenceState.type || originalRecurrenceState.type === 'schedule') &&
+        (!originalRecurrenceState.interval || originalRecurrenceState.interval === '1' || originalRecurrenceState.interval === 1) &&
+        (!originalRecurrenceState.endDate || originalRecurrenceState.endDate === '') &&
+        (!originalRecurrenceState.count || originalRecurrenceState.count === '' || originalRecurrenceState.count === null) &&
+        (!originalRecurrenceState.customDays || originalRecurrenceState.customDays.length === 0)
+      ) {
+        clearRecurrenceFields();
+      } else {
+        restoreRecurrenceState();
+      }
+    }
   };
+
+  // Cancel button should restore state or clear
+  const cancelBtn = document.querySelector('#recurrence-popup .btn-cancel');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      window.closeRecurrencePopup(true);
+    });
+  }
+
+  // Apply button should NOT restore state
+  if (applyRecurrenceBtn) {
+    applyRecurrenceBtn.addEventListener('click', () => {
+      window.closeRecurrencePopup(false);
+      // Do not restore state, keep changes
+    });
+  }
 
   // Recurrence rule change
   const ruleSelect = document.getElementById('todo-recurrence-rule');
