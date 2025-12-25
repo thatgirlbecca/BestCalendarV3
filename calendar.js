@@ -540,7 +540,7 @@ async function renderWeekView() {
           <div class="week-day-header-wrapper" style="grid-row: 1; grid-column: ${i + 2};">
             <div class="week-day-header">
               <div class="day-name">${dayName}</div>
-              <div class="day-number${isToday ? ' today' : ''}">${monthLabel ? monthLabel + ' ' : ''}${dayNum}</div>
+              <div class="day-number${isToday ? ' today' : ''}">${dayNum}</div>
             </div>
             <div class="week-allday-section" style="height: ${allDaySectionHeight}px; min-height: ${allDaySectionHeight}px; max-height: ${allDaySectionHeight}px;">
               ${allDayHtml}
