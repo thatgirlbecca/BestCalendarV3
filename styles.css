@@ -1,4 +1,13 @@
 @media (max-width: 767px) {
+    #week-grid {
+        grid-template-columns: 18px repeat(7, minmax(0, 1fr));
+    }
+    .timeline-hour {
+        font-size: 0.6em;
+        padding-top: 0;
+    }
+}
+@media (max-width: 767px) {
     .nav-dropdown {
         font-size: 0.65em;
         padding: 4px 4px;
@@ -655,6 +664,14 @@ body {
 }
 
 .timeline-hour {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        justify-content: center !important;
+        text-align: center;
+        box-sizing: border-box;
     height: 50px;
     border-bottom: 1px solid #555;
     display: flex;
@@ -679,7 +696,7 @@ body {
 #week-grid {
     flex: 1;
     display: grid;
-    grid-template-columns: 60px repeat(7, minmax(0, 1fr));
+    grid-template-columns: 30px repeat(7, minmax(0, 1fr));
     grid-template-rows: auto repeat(25, 50px);
     gap: 0;
     width: 100%;
