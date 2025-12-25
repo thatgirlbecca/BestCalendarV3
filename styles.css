@@ -35,7 +35,8 @@
     margin-top: 8px;
 }
 #event-detail-modal .event-edit-btn,
-#event-detail-modal .event-delete-btn {
+#event-detail-modal .event-delete-btn,
+#event-detail-modal .event-duplicate-btn {
     background: none;
     border: none;
     font-size: 1.15em;
@@ -47,6 +48,10 @@
 }
 #event-detail-modal .event-edit-btn:hover {
     color: #FF4F91;
+    background: #23272e;
+}
+#event-detail-modal .event-duplicate-btn:hover {
+    color: #4fa3ff;
     background: #23272e;
 }
 #event-detail-modal .event-delete-btn:hover {

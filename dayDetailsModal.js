@@ -35,6 +35,7 @@ function showDayDetailsModal(dateStr) {
           <span class="event-title" onclick="showEventModal('${ev.id}','${dateStr}',${idx})">${ev.title || '(No Title)'}</span>
           <div class="event-actions">
             <button class="event-edit-btn" title="Edit" onclick="event.stopPropagation();startEditEvent('${ev.id}','${dateStr}',${idx})">✎</button>
+            <button class="event-duplicate-btn" title="Duplicate" onclick="event.stopPropagation();duplicateEvent('${ev.id}','${dateStr}',${idx})">🗍</button>
             <button class="event-delete-btn" title="Delete" onclick="event.stopPropagation();deleteEventFromModal('${ev.id}')">🗑</button>
           </div>
         </div>
