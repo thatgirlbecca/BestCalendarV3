@@ -36,7 +36,7 @@ function showDayDetailsModal(dateStr) {
           <div class="event-actions">
             <button class="event-edit-btn" title="Edit" onclick="event.stopPropagation();startEditEvent('${ev.id}','${dateStr}',${idx})">✎</button>
             <button class="event-duplicate-btn" title="Duplicate" onclick="event.stopPropagation();duplicateEvent('${ev.id}','${dateStr}',${idx})">🗍</button>
-            <button class="event-delete-btn" title="Delete" onclick="event.stopPropagation();deleteEventFromModal('${ev.id}')">🗑</button>
+            <button class="event-delete-btn" title="Delete" onclick="event.stopPropagation();handleDayDetailDelete('${ev.id}','${dateStr}',${idx})">🗑</button>
           </div>
         </div>
         ${timeStr ? `<div class='event-times'><span class='event-time'>${timeStr}</span></div>` : ''}
@@ -48,4 +48,20 @@ function showDayDetailsModal(dateStr) {
   html += `</div></div>`;
   modal.innerHTML = html;
   modal.classList.add('show');
+}
+
+// Helper to handle delete from day details modal, showing recurring popup if needed
+window.handleDayDetailDelete = function(eventId, dateStr, idx) {
+  const event = calendarEvents.find(e => String(e.id) === String(eventId) && e.start_date === dateStr) || calendarEvents.find(e => String(e.id) === String(eventId));
+  if (!event) {
+    alert('Event not found');
+    return;
+  }
+  const isRecurringInstance = event.is_recurring_instance || (event.recurrence_rule && event.recurrence_rule !== 'NONE' && event.recurrence_rule !== '');
+  if (isRecurringInstance) {
+    // Use the same handler as event modal
+    handleRecurringEventDelete(event.original_event_id || event.id, dateStr);
+  } else {
+    deleteEventFromModal(event.id);
+  }
 }
