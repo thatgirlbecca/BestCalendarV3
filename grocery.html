@@ -47,6 +47,10 @@
 						<span class="view-icon">🛒</span>
 						<span class="view-text">Active</span>
 					</button>
+					<button class="view-btn" data-view="wishlist" onclick="switchView('wishlist')">
+						<span class="view-icon">💭</span>
+						<span class="view-text">Wishlist</span>
+					</button>
 					<button class="view-btn" data-view="archive" onclick="switchView('archive')">
 						<span class="view-icon">📦</span>
 						<span class="view-text">Archive</span>
@@ -61,7 +65,7 @@
 					<span style="font-size: 1.2em;">+</span> Add Item
 				</button>
 				<h2 id="view-title">Active List</h2>
-				<button id="sort-button" class="sort-button" onclick="openSortMenu()">⚙️ Sort</button>
+				<button id="sort-button" class="sort-button" onclick="openSortMenu()" style="display: none;">⚙️ Sort</button>
 			</div>
 
 			<div id="grocery-list-container">
@@ -92,10 +96,10 @@
 					<option value="food">🍙 Food</option>
 					<option value="cold">❄️ Cold</option>
 					<option value="not-food">🧹 Not Food</option>
-				</select>					<label for="item-description">Description (optional)</label>
+				</select>					<label for="item-description">Description</label>
 					<textarea id="item-description" placeholder="Additional details..." rows="3"></textarea>
 					
-					<label for="item-priority">Priority (optional)</label>
+					<label for="item-priority">Priority</label>
 					<select id="item-priority">
 						<option value="">No Priority</option>
 						<option value="high">High</option>
@@ -103,10 +107,16 @@
 						<option value="low">Low</option>
 					</select>
 					
-					<label for="item-labels">Labels (optional)</label>
+					<label for="item-labels">Labels</label>
 					<input type="text" id="item-labels" placeholder="e.g., organic, sale, bulk">
+
+					<label for="item-link">Link</label>
+					<input type="url" id="item-link" placeholder="e.g., https://store.com/product" pattern="https?://.*">
+
+					<label for="item-store">Store</label>
+					<input type="text" id="item-store" placeholder="e.g., Walmart, Amazon">
 					
-					<label for="item-due-date">Due Date (optional)</label>
+					<label for="item-due-date">Due Date</label>
 					<input type="date" id="item-due-date">
 					
 					<div class="form-buttons">

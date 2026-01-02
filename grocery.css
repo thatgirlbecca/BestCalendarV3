@@ -1,3 +1,9 @@
+/* Row for item name and priority label */
+.item-name-priority-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
 /* grocery.css - Styles for Grocery List (matching todo theme) */
 
 * {
@@ -751,7 +757,9 @@ body {
 	font-weight: bold;
 }
 
+/* Theme all item-form input boxes, including type="url" for Link */
 #item-form input[type="text"],
+#item-form input[type="url"],
 #item-form input[type="date"],
 #item-form select,
 #item-form textarea {
