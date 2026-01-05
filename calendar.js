@@ -1487,6 +1487,10 @@ function openForm() {
 
 function openFormWithDate(dateStr) {
   // Open form with a pre-filled date (called from day cell click)
+  // Store the date so we can reopen day details after closing form
+  window._openedFormFromDayDetails = dateStr;
+  // Close the day details modal
+  closeEventModal();
   openForm();
   document.getElementById('event-date').value = dateStr;
 }
@@ -1531,6 +1535,13 @@ function closeForm() {
   if (recurrenceCount) recurrenceCount.value = '10';
   const noneRadio = document.querySelector('input[name="recurrence-end-type"][value="none"]');
   if (noneRadio) noneRadio.checked = true;
+  
+  // Reopen day details modal if we came from there
+  if (window._openedFormFromDayDetails) {
+    const dateStr = window._openedFormFromDayDetails;
+    window._openedFormFromDayDetails = null;
+    showDayDetailsModal(dateStr);
+  }
 } 
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1814,6 +1825,8 @@ function initializeCalendar() {
             // Reset editing state
             document.getElementById('editing-event-id').value = '';
             const submitBtn = document.getElementById('event-submit-btn'); if (submitBtn) submitBtn.textContent = 'Add Event';
+            // Clear the day details flag so we don't reopen it after saving
+            window._openedFormFromDayDetails = null;
             closeForm();
             await renderCalendar();
             // Clear form fields
@@ -1831,8 +1844,18 @@ function initializeCalendar() {
         } else {
           const created = await createEvent(eventData);
           if (created) {
-            closeForm();
-            await renderCalendar();
+            // Restore day details popup if we came from there
+            if (window._openedFormFromDayDetails) {
+              const dateStr = window._openedFormFromDayDetails;
+              window._openedFormFromDayDetails = null;
+              closeForm();
+              await renderCalendar();
+              showDayDetailsModal(dateStr);
+            } else {
+              window._openedFormFromDayDetails = null;
+              closeForm();
+              await renderCalendar();
+            }
             // Clear form fields
             document.getElementById('event-title').value = '';
             document.getElementById('event-date').value = '';
@@ -1952,4 +1975,525 @@ function handleNavigation(select) {
   if (value) {
     window.location.href = value;
   }
+}
+
+// ============================================
+// TODO PANEL FUNCTIONALITY
+// ============================================
+
+let todoPanelTodos = [];
+let todoPanelView = 'today';
+let todoPanelSortBy = localStorage.getItem('todoPanelSortBy') || 'importance';
+let todoPanelSortDir = localStorage.getItem('todoPanelSortDir') || 'asc';
+let todoPanelSortBySecondary = localStorage.getItem('todoPanelSortBySecondary') || '';
+let todoPanelSortDirSecondary = localStorage.getItem('todoPanelSortDirSecondary') || 'asc';
+
+// Toggle todo panel open/close
+function toggleTodoPanel() {
+  const panel = document.getElementById('todo-panel');
+  const toggle = document.getElementById('todo-panel-toggle');
+  const overlay = document.getElementById('todo-panel-overlay');
+  
+  if (panel.classList.contains('open')) {
+    closeTodoPanel();
+  } else {
+    panel.classList.add('open');
+    toggle.classList.add('panel-open');
+    overlay.classList.add('show');
+    loadTodoPanelTodos();
+  }
+}
+
+// Close todo panel
+function closeTodoPanel() {
+  const panel = document.getElementById('todo-panel');
+  const toggle = document.getElementById('todo-panel-toggle');
+  const overlay = document.getElementById('todo-panel-overlay');
+  
+  panel.classList.remove('open');
+  toggle.classList.remove('panel-open');
+  overlay.classList.remove('show');
+}
+
+// Switch view in todo panel
+function switchTodoPanelView(view) {
+  todoPanelView = view;
+  
+  // Update active tab
+  document.querySelectorAll('.todo-panel-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
+  
+  renderTodoPanelList();
+}
+
+// Load todos for the panel
+async function loadTodoPanelTodos() {
+  try {
+    todoPanelTodos = await getTodos({ archived: false });
+    renderTodoPanelList();
+  } catch (err) {
+    console.error('Error loading todos for panel:', err);
+  }
+}
+
+// Open sort menu popup
+function openTodoPanelSortMenu() {
+  const menu = document.getElementById('todo-panel-sort-menu');
+  // Restore current values to UI
+  const sortSelect = document.getElementById('todo-panel-sort-select');
+  const sortDirBtn = document.getElementById('todo-panel-sort-dir');
+  const sortSelectSecondary = document.getElementById('todo-panel-sort-select-secondary');
+  const sortDirBtnSecondary = document.getElementById('todo-panel-sort-dir-secondary');
+  
+  if (sortSelect) sortSelect.value = todoPanelSortBy;
+  if (sortDirBtn) sortDirBtn.textContent = todoPanelSortDir === 'asc' ? '↑' : '↓';
+  if (sortSelectSecondary) sortSelectSecondary.value = todoPanelSortBySecondary;
+  if (sortDirBtnSecondary) sortDirBtnSecondary.textContent = todoPanelSortDirSecondary === 'asc' ? '↑' : '↓';
+  
+  menu.style.display = 'block';
+}
+
+// Close sort menu popup
+function closeTodoPanelSortMenu() {
+  const menu = document.getElementById('todo-panel-sort-menu');
+  menu.style.display = 'none';
+}
+
+// Apply sort from menu
+function applyTodoPanelSort() {
+  const sortSelect = document.getElementById('todo-panel-sort-select');
+  const sortSelectSecondary = document.getElementById('todo-panel-sort-select-secondary');
+  
+  if (sortSelect) {
+    todoPanelSortBy = sortSelect.value;
+    localStorage.setItem('todoPanelSortBy', todoPanelSortBy);
+  }
+  if (sortSelectSecondary) {
+    todoPanelSortBySecondary = sortSelectSecondary.value;
+    localStorage.setItem('todoPanelSortBySecondary', todoPanelSortBySecondary);
+  }
+  
+  closeTodoPanelSortMenu();
+  renderTodoPanelList();
+}
+
+// Toggle primary sort direction
+function toggleTodoPanelSortDirection() {
+  todoPanelSortDir = todoPanelSortDir === 'asc' ? 'desc' : 'asc';
+  localStorage.setItem('todoPanelSortDir', todoPanelSortDir);
+  const sortDirBtn = document.getElementById('todo-panel-sort-dir');
+  if (sortDirBtn) sortDirBtn.textContent = todoPanelSortDir === 'asc' ? '↑' : '↓';
+}
+
+// Toggle secondary sort direction
+function toggleTodoPanelSortDirectionSecondary() {
+  todoPanelSortDirSecondary = todoPanelSortDirSecondary === 'asc' ? 'desc' : 'asc';
+  localStorage.setItem('todoPanelSortDirSecondary', todoPanelSortDirSecondary);
+  const sortDirBtn = document.getElementById('todo-panel-sort-dir-secondary');
+  if (sortDirBtn) sortDirBtn.textContent = todoPanelSortDirSecondary === 'asc' ? '↑' : '↓';
+}
+
+// Render the todo list in the panel
+function renderTodoPanelList() {
+  const container = document.getElementById('todo-panel-list');
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  
+  let filteredTodos = [];
+  
+  switch (todoPanelView) {
+    case 'today':
+      filteredTodos = todoPanelTodos.filter(todo => {
+        if (todo.completed) return false;
+        // Show if start date is today or before, or if due today
+        const startOk = !todo.start_date || todo.start_date <= today;
+        const dueToday = todo.due_date && todo.due_date === today;
+        const overdue = todo.due_date && todo.due_date < today;
+        return startOk || dueToday || overdue;
+      });
+      break;
+    case 'upcoming':
+      // Show tasks starting within the next 7 days
+      const next7Days = new Date(now);
+      next7Days.setDate(next7Days.getDate() + 7);
+      const next7DaysStr = `${next7Days.getFullYear()}-${String(next7Days.getMonth() + 1).padStart(2, '0')}-${String(next7Days.getDate()).padStart(2, '0')}`;
+      filteredTodos = todoPanelTodos.filter(todo => {
+        if (todo.completed) return false;
+        // Show if start date is in the future but within 7 days, or due date is within 7 days
+        const startInRange = todo.start_date && todo.start_date > today && todo.start_date <= next7DaysStr;
+        const dueInRange = todo.due_date && todo.due_date > today && todo.due_date <= next7DaysStr;
+        return startInRange || dueInRange;
+      });
+      break;
+    case 'inbox':
+      // Inbox shows all non-completed tasks
+      filteredTodos = todoPanelTodos.filter(todo => !todo.completed);
+      break;
+  }
+  
+  // Sort by selected criteria (primary and secondary)
+  const direction = todoPanelSortDir === 'asc' ? 1 : -1;
+  const directionSecondary = todoPanelSortDirSecondary === 'asc' ? 1 : -1;
+  filteredTodos.sort((a, b) => {
+    const primaryResult = compareTodoPanelItems(a, b, todoPanelSortBy, direction);
+    if (primaryResult === 0 && todoPanelSortBySecondary) {
+      return compareTodoPanelItems(a, b, todoPanelSortBySecondary, directionSecondary);
+    }
+    return primaryResult;
+  });
+  
+  if (filteredTodos.length === 0) {
+    const emptyMessages = {
+      today: 'No tasks for today! 🎉',
+      upcoming: 'No upcoming tasks',
+      inbox: 'Inbox is empty'
+    };
+    container.innerHTML = `<div class="todo-panel-empty">${emptyMessages[todoPanelView]}</div>`;
+    return;
+  }
+  
+  container.innerHTML = filteredTodos.map(todo => renderTodoPanelItem(todo, today)).join('');
+}
+
+// Render a single todo item for the panel
+function renderTodoPanelItem(todo, today) {
+  const importanceClass = `importance-${todo.importance || 4}`;
+  const completedClass = todo.completed ? 'completed' : '';
+  const isDueToday = todo.due_date && todo.due_date === today && !todo.completed;
+  const isOverdue = todo.due_date && todo.due_date < today && !todo.completed;
+  const dueTodayClass = isDueToday ? 'due-today' : '';
+  const overdueClass = isOverdue ? 'overdue' : '';
+  const importanceIcons = { 1: '🔴', 2: '🟠', 3: '🟡', 4: '⚪' };
+  
+  let metaInfo = [];
+  if (todo.start_date) {
+    metaInfo.push(`▶️ ${formatTodoPanelDate(todo.start_date, today)}`);
+  }
+  if (todo.due_date) {
+    metaInfo.push(`📅 ${formatTodoPanelDate(todo.due_date, today)}`);
+  }
+  if (todo.recurrence_rule) {
+    metaInfo.push('🔁');
+  }
+  
+  return `
+    <div class="todo-panel-item ${importanceClass} ${completedClass} ${dueTodayClass} ${overdueClass}" onclick="openTodoPanelDetail(${todo.id})">
+      <div class="todo-panel-item-header">
+        <input 
+          type="checkbox" 
+          class="todo-panel-checkbox" 
+          ${todo.completed ? 'checked' : ''}
+          onclick="toggleTodoPanelComplete(event, ${todo.id})"
+        />
+        <div class="todo-panel-item-content">
+          <div class="todo-panel-item-text">${importanceIcons[todo.importance || 4]} ${escapeHtml(todo.text)}</div>
+          ${metaInfo.length > 0 ? `<div class="todo-panel-item-meta">${metaInfo.join(' • ')}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Compare two todo items by criteria for sorting
+function compareTodoPanelItems(a, b, criteria, direction) {
+  let compareA, compareB;
+  
+  switch (criteria) {
+    case 'start_date':
+      compareA = a.start_date || '9999-12-31';
+      compareB = b.start_date || '9999-12-31';
+      return compareA.localeCompare(compareB) * direction;
+    
+    case 'due_date':
+      compareA = a.due_date || '9999-12-31';
+      compareB = b.due_date || '9999-12-31';
+      return compareA.localeCompare(compareB) * direction;
+    
+    case 'importance':
+      compareA = a.importance || 4;
+      compareB = b.importance || 4;
+      return (compareA - compareB) * direction;
+    
+    case 'recurring':
+      compareA = a.recurrence_rule ? 0 : 1;
+      compareB = b.recurrence_rule ? 0 : 1;
+      return (compareA - compareB) * direction;
+    
+    case 'alphabetical':
+      compareA = (a.text || '').toLowerCase();
+      compareB = (b.text || '').toLowerCase();
+      return compareA.localeCompare(compareB) * direction;
+    
+    default:
+      return 0;
+  }
+}
+
+// Format date for the todo panel
+function formatTodoPanelDate(dateStr, today) {
+  if (!dateStr) return '';
+  
+  const date = new Date(dateStr + 'T00:00:00');
+  const todayDate = new Date(today + 'T00:00:00');
+  const diff = Math.floor((date - todayDate) / (1000 * 60 * 60 * 24));
+  
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  if (diff < -1) return `${Math.abs(diff)} days ago`;
+  if (diff > 1 && diff <= 7) return `In ${diff} days`;
+  
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Toggle todo completion from panel
+async function toggleTodoPanelComplete(event, todoId) {
+  event.stopPropagation();
+  
+  const todo = todoPanelTodos.find(t => t.id === todoId);
+  if (!todo) return;
+  
+  if (todo.completed) {
+    await incompleteTodo(todoId);
+  } else {
+    await completeTodo(todoId);
+  }
+  
+  await loadTodoPanelTodos();
+}
+
+// Open todo detail - show popup modal
+function openTodoPanelDetail(todoId) {
+  const todo = todoPanelTodos.find(t => t.id === todoId);
+  if (!todo) return;
+  
+  const modal = document.getElementById('todo-panel-detail-modal');
+  const importanceLabels = { 1: 'High', 2: 'Medium', 3: 'Low', 4: 'None' };
+  const importanceClasses = { 1: 'high', 2: 'medium', 3: 'low', 4: 'none' };
+  
+  // Set title
+  document.getElementById('todo-panel-detail-title').textContent = todo.text;
+  
+  // Build detail content
+  let detailsHtml = '';
+  
+  // Description
+  if (todo.description) {
+    detailsHtml += `
+      <div class="todo-panel-detail-field">
+        <span class="todo-panel-detail-label">Description</span>
+        <div class="todo-panel-detail-value">${escapeHtml(todo.description)}</div>
+      </div>
+    `;
+  }
+  
+  // Start Date
+  if (todo.start_date) {
+    detailsHtml += `
+      <div class="todo-panel-detail-field">
+        <span class="todo-panel-detail-label">Start Date</span>
+        <div class="todo-panel-detail-value">${formatTodoPanelDetailDate(todo.start_date)}</div>
+      </div>
+    `;
+  }
+  
+  // Due Date
+  if (todo.due_date) {
+    detailsHtml += `
+      <div class="todo-panel-detail-field">
+        <span class="todo-panel-detail-label">Due Date</span>
+        <div class="todo-panel-detail-value">${formatTodoPanelDetailDate(todo.due_date)}</div>
+      </div>
+    `;
+  }
+  
+  // Importance
+  detailsHtml += `
+    <div class="todo-panel-detail-field">
+      <span class="todo-panel-detail-label">Importance</span>
+      <div class="todo-panel-detail-value">
+        <span class="todo-panel-detail-importance ${importanceClasses[todo.importance || 4]}">
+          ${importanceLabels[todo.importance || 4]}
+        </span>
+      </div>
+    </div>
+  `;
+  
+  // Recurrence
+  if (todo.recurrence_rule) {
+    detailsHtml += `
+      <div class="todo-panel-detail-field">
+        <span class="todo-panel-detail-label">Recurrence</span>
+        <div class="todo-panel-detail-value">🔁 Recurring task</div>
+      </div>
+    `;
+  }
+  
+  // Labels
+  if (todo.labels && todo.labels.length > 0) {
+    detailsHtml += `
+      <div class="todo-panel-detail-field">
+        <span class="todo-panel-detail-label">Labels</span>
+        <div class="todo-panel-detail-labels">
+          ${todo.labels.map(l => `<span class="todo-panel-detail-label-tag">${escapeHtml(l)}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // Status
+  detailsHtml += `
+    <div class="todo-panel-detail-field">
+      <span class="todo-panel-detail-label">Status</span>
+      <div class="todo-panel-detail-value">${todo.completed ? '✅ Completed' : '⭕ Not Completed'}</div>
+    </div>
+  `;
+  
+  document.getElementById('todo-panel-detail-content').innerHTML = detailsHtml;
+  
+  // Set archive button text
+  const archiveBtn = modal.querySelector('.todo-panel-detail-btn.archive');
+  archiveBtn.textContent = todo.archived ? '📤 Unarchive' : '📦 Archive';
+  
+  // Set complete checkbox state
+  const completeCheckbox = document.getElementById('todo-panel-detail-checkbox');
+  const completeLabel = document.getElementById('todo-panel-detail-complete-label');
+  completeCheckbox.checked = todo.completed;
+  completeLabel.textContent = todo.completed ? 'Completed' : 'Mark as Complete';
+  
+  // Store the current todo ID
+  modal.dataset.todoId = todoId;
+  
+  modal.style.display = 'flex';
+}
+
+// Format date for detail modal
+function formatTodoPanelDetailDate(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// Close todo panel detail modal
+function closeTodoPanelDetail() {
+  const modal = document.getElementById('todo-panel-detail-modal');
+  modal.style.display = 'none';
+  delete modal.dataset.todoId;
+}
+
+// Toggle complete from detail modal
+async function toggleCompleteTodoPanelDetail() {
+  const modal = document.getElementById('todo-panel-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  const todo = todoPanelTodos.find(t => t.id === todoId);
+  
+  if (!todo) return;
+  
+  if (todo.completed) {
+    await incompleteTodo(todoId);
+  } else {
+    await completeTodo(todoId);
+  }
+  
+  await loadTodoPanelTodos();
+  
+  // Update the modal with refreshed data
+  const updatedTodo = todoPanelTodos.find(t => t.id === todoId);
+  if (updatedTodo) {
+    const completeCheckbox = document.getElementById('todo-panel-detail-checkbox');
+    const completeLabel = document.getElementById('todo-panel-detail-complete-label');
+    completeCheckbox.checked = updatedTodo.completed;
+    completeLabel.textContent = updatedTodo.completed ? 'Completed' : 'Mark as Complete';
+  }
+}
+
+// Archive from detail modal
+async function archiveTodoPanelDetail() {
+  const modal = document.getElementById('todo-panel-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  const todo = todoPanelTodos.find(t => t.id === todoId);
+  
+  if (!todo) return;
+  
+  if (todo.archived) {
+    await updateTodo(todoId, { archived: false });
+  } else {
+    await updateTodo(todoId, { archived: true });
+  }
+  
+  closeTodoPanelDetail();
+  await loadTodoPanelTodos();
+}
+
+// Edit from detail modal - navigate to todo page
+function editTodoPanelDetail() {
+  const modal = document.getElementById('todo-panel-detail-modal');
+  const todoId = modal.dataset.todoId;
+  window.location.href = `todo.html?edit=${todoId}`;
+}
+
+// Delete from detail modal
+async function deleteTodoPanelDetail() {
+  const modal = document.getElementById('todo-panel-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  if (!todoId) return;
+  if (confirm('Delete this todo?')) {
+    await deleteTodo(todoId);
+    closeTodoPanelDetail();
+    await loadTodoPanelTodos();
+  }
+}
+
+// Open add todo form - open modal on the calendar page
+function openAddTodoFromPanel() {
+  const modal = document.getElementById('todo-panel-add-modal');
+  const form = document.getElementById('todo-panel-add-form');
+  if (form) form.reset();
+  
+  // Set today's date for Today view
+  if (window._todoPanelView === 'today') {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    document.getElementById('todo-panel-start-date').value = today;
+  }
+  
+  modal.style.display = 'block';
+}
+
+// Close add todo modal
+function closeTodoPanelAddModal() {
+  document.getElementById('todo-panel-add-modal').style.display = 'none';
+}
+
+// Save todo from panel
+async function saveTodoPanelTask(event) {
+  event.preventDefault();
+  
+  const text = document.getElementById('todo-panel-text').value.trim();
+  const description = document.getElementById('todo-panel-description').value.trim();
+  const startDate = document.getElementById('todo-panel-start-date').value;
+  const dueDate = document.getElementById('todo-panel-due-date').value;
+  const importance = parseInt(document.getElementById('todo-panel-importance').value);
+  const labelsInput = document.getElementById('todo-panel-labels').value;
+  const labels = labelsInput ? labelsInput.split(',').map(l => l.trim()).filter(l => l) : [];
+  
+  const todoData = {
+    text,
+    description,
+    importance,
+    labels,
+    startDate: startDate || null,
+    dueDate: dueDate || null
+  };
+  
+  const result = await createTodo(todoData);
+  
+  if (!result) {
+    alert('Error saving todo. Check console for details.');
+    return;
+  }
+  
+  closeTodoPanelAddModal();
+  await loadTodoPanelTodos();
 }

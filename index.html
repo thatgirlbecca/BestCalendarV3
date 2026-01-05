@@ -211,6 +211,142 @@
 	<!-- Event detail modal -->
 	<div id="event-detail-modal"></div>
 	
+	<!-- Todo Panel Toggle Button (desktop only) -->
+	<button id="todo-panel-toggle" class="todo-panel-toggle" onclick="toggleTodoPanel()" title="Toggle Todo List">
+		📝
+	</button>
+	
+	<!-- Pull-out Todo Panel -->
+	<div id="todo-panel" class="todo-panel">
+		<div class="todo-panel-header">
+			<h2>📝 Todo List</h2>
+			<button class="todo-panel-close" onclick="closeTodoPanel()">&times;</button>
+		</div>
+		<div class="todo-panel-toolbar">
+			<button class="todo-panel-add-btn" onclick="openAddTodoFromPanel()">+ Add Task</button>
+			<button class="todo-panel-sort-btn" onclick="openTodoPanelSortMenu()">⚙️ Sort</button>
+		</div>
+		<!-- Sort Menu Popup -->
+		<div id="todo-panel-sort-menu" class="todo-panel-sort-menu" style="display: none;">
+			<div class="todo-panel-sort-menu-content">
+				<div class="todo-panel-sort-menu-header">
+					<span>Sort Options</span>
+					<button class="todo-panel-sort-menu-close" onclick="closeTodoPanelSortMenu()">&times;</button>
+				</div>
+				<div class="todo-panel-sort-row">
+					<label>Sort by:</label>
+					<select id="todo-panel-sort-select">
+						<option value="importance">Priority</option>
+						<option value="start_date">Start Date</option>
+						<option value="due_date">Due Date</option>
+						<option value="alphabetical">Alphabetical</option>
+						<option value="recurring">Recurring</option>
+					</select>
+					<button id="todo-panel-sort-dir" class="todo-panel-sort-dir-btn" onclick="toggleTodoPanelSortDirection()" title="Toggle sort direction">↑</button>
+				</div>
+				<div class="todo-panel-sort-row">
+					<label>Then by:</label>
+					<select id="todo-panel-sort-select-secondary">
+						<option value="">None</option>
+						<option value="importance">Priority</option>
+						<option value="start_date">Start Date</option>
+						<option value="due_date">Due Date</option>
+						<option value="alphabetical">Alphabetical</option>
+						<option value="recurring">Recurring</option>
+					</select>
+					<button id="todo-panel-sort-dir-secondary" class="todo-panel-sort-dir-btn" onclick="toggleTodoPanelSortDirectionSecondary()" title="Toggle secondary sort direction">↑</button>
+				</div>
+				<div class="todo-panel-sort-actions">
+					<button class="todo-panel-sort-apply" onclick="applyTodoPanelSort()">Apply</button>
+				</div>
+			</div>
+		</div>
+		<div class="todo-panel-tabs">
+			<button class="todo-panel-tab active" data-view="today" onclick="switchTodoPanelView('today')">Today</button>
+			<button class="todo-panel-tab" data-view="upcoming" onclick="switchTodoPanelView('upcoming')">Upcoming</button>
+			<button class="todo-panel-tab" data-view="inbox" onclick="switchTodoPanelView('inbox')">Inbox</button>
+		</div>
+		<div id="todo-panel-list" class="todo-panel-list">
+			<!-- Todos will be rendered here -->
+		</div>
+	</div>
+	<div id="todo-panel-overlay" class="todo-panel-overlay" onclick="closeTodoPanel()"></div>
+	
+	<!-- Add Todo Modal (for panel) -->
+	<div id="todo-panel-add-modal" class="todo-panel-add-modal" style="display: none;">
+		<div class="todo-panel-add-content">
+			<div class="todo-panel-add-header">
+				<h2>Add Task</h2>
+				<span class="close" onclick="closeTodoPanelAddModal()">&times;</span>
+			</div>
+			<form id="todo-panel-add-form" onsubmit="saveTodoPanelTask(event)">
+				<div class="form-row">
+					<label for="todo-panel-text">Task *</label>
+					<input type="text" id="todo-panel-text" required placeholder="What needs to be done?">
+				</div>
+				<div class="form-row">
+					<label for="todo-panel-description">Description</label>
+					<textarea id="todo-panel-description" rows="3" placeholder="Add details..."></textarea>
+				</div>
+				<div class="form-row-split">
+					<div class="form-col">
+						<label for="todo-panel-start-date">Start Date</label>
+						<input type="date" id="todo-panel-start-date">
+					</div>
+					<div class="form-col">
+						<label for="todo-panel-due-date">Due Date</label>
+						<input type="date" id="todo-panel-due-date">
+					</div>
+				</div>
+				<div class="form-row">
+					<label for="todo-panel-importance">Importance</label>
+					<select id="todo-panel-importance">
+						<option value="1">🔴 High (1)</option>
+						<option value="2">🟠 Medium (2)</option>
+						<option value="3">🟡 Low (3)</option>
+						<option value="4" selected>⚪ None (4)</option>
+					</select>
+				</div>
+				<div class="form-row">
+					<label for="todo-panel-labels">Labels (comma separated)</label>
+					<input type="text" id="todo-panel-labels" placeholder="work, personal, urgent">
+				</div>
+				<div class="form-actions">
+					<button type="button" class="btn-cancel" onclick="closeTodoPanelAddModal()">Cancel</button>
+					<button type="submit" class="btn-save">Save</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	
+	<!-- Todo Detail Modal (for panel) -->
+	<div id="todo-panel-detail-modal" class="todo-panel-detail-modal" style="display: none;">
+		<div class="todo-panel-detail-content">
+			<div class="todo-panel-detail-header">
+				<h2 id="todo-panel-detail-title"></h2>
+				<span class="close" onclick="closeTodoPanelDetail()">&times;</span>
+			</div>
+			<div style="padding: 20px;">
+				<div id="todo-panel-detail-content">
+					<!-- Details will be populated here -->
+				</div>
+				<div class="todo-panel-detail-actions">
+					   <div style="display: flex; gap: 10px; align-items: center;">
+						   <label class="complete-task-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 16px;">
+							   <input type="checkbox" id="todo-panel-detail-checkbox" onchange="toggleCompleteTodoPanelDetail()" style="width: 20px; height: 20px; cursor: pointer;">
+							   <span id="todo-panel-detail-complete-label" class="todo-panel-detail-complete-label">Mark as Complete</span>
+						   </label>
+					   </div>
+					   <div style="display: flex; gap: 10px; margin-top: 10px;">
+						   <button class="todo-panel-detail-btn archive" onclick="archiveTodoPanelDetail()">📦 Archive</button>
+						   <button class="todo-panel-detail-btn edit" onclick="editTodoPanelDetail()">✏️ Edit</button>
+						   <button class="todo-panel-detail-btn delete" onclick="deleteTodoPanelDetail()">🗑️ Delete</button>
+					   </div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
 	<!-- Recurring Event Delete Dialog -->
 	<div id="recurring-delete-dialog" class="recurring-delete-overlay" style="display: none;">
 		<div class="recurring-delete-modal">
