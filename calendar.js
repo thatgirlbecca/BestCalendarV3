@@ -565,23 +565,33 @@ async function renderWeekView() {
     }
     
     weekGrid.innerHTML = gridHtml;
-    
+
+    // Add click handler to week view day columns for opening day details
+    weekGrid.querySelectorAll('.week-day-column').forEach(col => {
+      col.addEventListener('click', function(e) {
+        // Only trigger if not clicking on an event box
+        if (e.target.closest('.week-event') || e.target.closest('.week-allday-event')) return;
+        const dayStr = col.getAttribute('data-date');
+        if (dayStr) showDayDetailsModal(dayStr);
+      });
+    });
+
     // No need to sync timeline anymore - it's in the same grid
-    
+
     // Auto-scroll to 6am (6 hours * 50px = 300px)
     setTimeout(() => {
-        weekGrid.scrollTop = 300;
+      weekGrid.scrollTop = 300;
     }, 0);
-    
+
     // Save current date to localStorage
     localStorage.setItem('calendar_date', date.toISOString());
-    
+
     // Attach click handlers to all event items after rendering
     attachEventItemListeners();
-    
+
     // Attach click handlers to day cells for creating new events
     attachDayCellListeners();
-}
+  }
 
 async function renderCalendar() {
     if (currentView === 'week') {
