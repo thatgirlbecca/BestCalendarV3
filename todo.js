@@ -547,6 +547,12 @@ function openTodoDetail(todoId) {
     archiveBtn.textContent = '📦 Archive';
   }
   
+  // Set complete checkbox state
+  const completeCheckbox = document.getElementById('todo-detail-complete-checkbox');
+  const completeLabel = document.getElementById('todo-detail-complete-label');
+  completeCheckbox.checked = todo.completed;
+  completeLabel.textContent = todo.completed ? 'Completed' : 'Mark as Complete';
+  
   // Store the current todo ID
   modal.dataset.todoId = todoId;
   
@@ -597,6 +603,30 @@ async function archiveTodoFromDetail() {
   }
   
   await loadTodos();
+}
+
+// Toggle complete from detail modal
+async function toggleCompleteFromDetail() {
+  const modal = document.getElementById('todo-detail-modal');
+  const todoId = parseInt(modal.dataset.todoId);
+  const todo = todos.find(t => t.id === todoId);
+  
+  if (!todo) return;
+  
+  if (todo.completed) {
+    await incompleteTodo(todoId);
+  } else {
+    await completeTodo(todoId);
+  }
+  
+  await loadTodos();
+  
+  // Update the checkbox label to reflect new state
+  const updatedTodo = todos.find(t => t.id === todoId);
+  if (updatedTodo) {
+    const completeLabel = document.getElementById('todo-detail-complete-label');
+    completeLabel.textContent = updatedTodo.completed ? 'Completed' : 'Mark as Complete';
+  }
 }
 
 // Format date for detail view

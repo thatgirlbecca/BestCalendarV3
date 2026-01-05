@@ -294,6 +294,12 @@
 					<!-- Details will be populated here -->
 				</div>
 			<div class="modal-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #444;">
+				<div style="display: flex; gap: 10px; align-items: center;">
+					<label class="complete-task-checkbox" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 16px;">
+						<input type="checkbox" id="todo-detail-complete-checkbox" onchange="toggleCompleteFromDetail()" style="width: 20px; height: 20px; cursor: pointer;">
+						<span id="todo-detail-complete-label">Mark as Complete</span>
+					</label>
+				</div>
 				<div style="display: flex; gap: 10px;">
 					<button class="modal-action-btn modal-edit-new" onclick="editTodoFromDetail()">✏️ Edit</button>
 				</div>
