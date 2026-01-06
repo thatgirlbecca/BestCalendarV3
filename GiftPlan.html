@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GiftPlan</title>
+    <link rel="icon" type="image/png" href="BestCalendarV3Favicon3.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="GiftPlan.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="supabase.js"></script>
+    <script src="auth.js"></script>
+    <script src="GiftPlan.js"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" style="display: none;">
+        <div class="login-container">
+            <h1>GiftPlan Login</h1>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <label for="login-email"><b>Email</b></label>
+                <input type="email" id="login-email" placeholder="Enter your email" required autofocus autocomplete="off">
+                <label for="login-password"><b>Password</b></label>
+                <input type="password" id="login-password" placeholder="Enter password" required autocomplete="off">
+                <button type="submit" class="btn-login">Login</button>
+                <div id="login-error" class="login-error" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GiftPlan App -->
+    <div id="giftplan-app" style="display: none;">
+        <div id="giftplan-header">
+            <div class="giftplan-header-flex">
+                <div class="header-title"> <h1>🎁 Gift Plan</h1> </div>
+                <div class="header-center">
+                    <label for="year-select">Year:</label>
+                    <select id="year-select"></select>
+                    <span id="total-cost-all">Total: $0.00</span>
+                </div>
+                <div class="header-buttons">
+                    <select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
+                        <option value="index.html">📅 Calendar</option>
+                        <option value="todo.html">📝 Todos</option>
+                        <option value="grocery.html">🛒 Grocery</option>
+                        <option value="GiftPlan.html" selected>🎁 GiftPlan</option>
+                    </select>
+                    <button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+                </div>
+            </div>
+        </div>
+        <main>
+            <div id="giftplan-main" class="giftplan-3col">
+                <!-- People Sidebar -->
+                <aside id="people-sidebar">
+                    <div class="sidebar-header">
+                        <span>People</span>
+                        <button id="add-person-btn" title="Add Person">+</button>
+                    </div>
+                    <ul id="people-list"></ul>
+                </aside>
+                <!-- Gifts to Give -->
+                <section id="gifts-given-section">
+                    <div class="gifts-header">
+                        <span id="gifts-given-title">Gifts to Give</span>
+                        <button id="add-gift-btn" title="Add Gift">+</button>
+                    </div>
+                    <div id="gifts-given-total">Total: $0.00</div>
+                    <ul id="gifts-given-list"></ul>
+                </section>
+                <!-- Gifts Received -->
+                <section id="gifts-received-section">
+                    <div class="gifts-header">
+                        <span id="gifts-received-title">Gifts Received</span>
+                        <button id="add-received-gift-btn" title="Add Received Gift">+</button>
+                    </div>
+                    <ul id="gifts-received-list"></ul>
+                </section>
+            </div>
+
+            <!-- Modals -->
+            <div id="modal-overlay" class="modal-overlay" style="display:none;"></div>
+            <div id="person-modal" class="modal" style="display:none;">
+                <form id="person-form">
+                    <h2>Add Person</h2>
+                    <label>Name</label>
+                    <input type="text" id="person-name" required autocomplete="off">
+                    <label>Birthday (MM/DD) - Optional</label>
+                    <input type="text" id="person-birthday" placeholder="MM/DD" autocomplete="off">
+                    <div class="modal-actions">
+                        <button type="submit">Save</button>
+                        <button type="button" onclick="closePersonModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div id="gift-modal" class="modal" style="display:none;">
+                <form id="gift-form">
+                    <h2 id="gift-modal-title">Add Gift</h2>
+                    <label>Item</label>
+                    <input type="text" id="gift-item" required autocomplete="off">
+                    <label>Occasion</label>
+                    <select id="gift-occasion">
+                        <option value="christmas">Christmas</option>
+                        <option value="birthday">Birthday</option>
+                    </select>
+                    <label>Store</label>
+                    <input type="text" id="gift-store" autocomplete="off">
+                    <label>Cost</label>
+                    <input type="number" id="gift-cost" min="0" step="0.01" autocomplete="off">
+                    <label>Notes</label>
+                    <textarea id="gift-notes"></textarea>
+                    <div class="modal-actions">
+                        <button type="submit">Save</button>
+                        <button type="button" onclick="closeGiftModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // Show/hide GiftPlan app based on login
+    function showGiftPlan() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('giftplan-app').style.display = 'block';
+    }
+    function showLoginGiftPlan() {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('giftplan-app').style.display = 'none';
+    }
+    async function checkGiftPlanAuthOnLoad() {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const authenticated = await isAuthenticated();
+        if (authenticated) {
+            showGiftPlan();
+        } else {
+            showLoginGiftPlan();
+        }
+    }
+    window.addEventListener('DOMContentLoaded', checkGiftPlanAuthOnLoad);
+    // Override showCalendar/showLogin for this page
+    window.showCalendar = showGiftPlan;
+    window.showLogin = showLoginGiftPlan;
+    </script>
+</body>
+</html>
