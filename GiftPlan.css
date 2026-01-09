@@ -1,3 +1,15 @@
+/* Birthday label in People View middle column */
+.person-birthday-label {
+  margin: 0.25em 0 0.25em 0;
+  padding: 0.15em 0.7em;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.98em;
+  color: #888;
+  font-weight: 400;
+  display: inline-block;
+  box-shadow: none;
+}
 /* Centered header layout for year selector and total cost */
 .giftplan-header-flex {
   display: flex;
@@ -6,6 +18,17 @@
   padding: 8px 10px;
   background-color: #111;
   border-bottom: 2px solid #333;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.header-logo {
+  color: #FF4F91;
+  font-size: 1.5em;
+  margin: 0;
+  white-space: nowrap;
 }
 .header-title h1 {
   color: #FF4F91;
@@ -39,6 +62,36 @@
   gap: 10px;
   align-items: center;
 }
+
+/* ===== VIEW TABS ===== */
+.view-tabs {
+  display: flex;
+  gap: 0;
+}
+.view-tab {
+  padding: 10px 20px;
+  background: #1a1a1a;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  font-size: 1em;
+  transition: color 0.2s, border-color 0.2s;
+}
+.view-tab:hover {
+  color: #fff;
+}
+.view-tab.active {
+  color: #FF4F91;
+  border-bottom-color: #FF4F91;
+  background: #222;
+}
+
+/* ===== VIEW CONTAINERS ===== */
+.view-container {
+  width: 100%;
+  min-height: calc(100vh - 56px);
+}
 /* GiftPlan.css - Styles for Gift Plan page */
 
 #giftplan-main {
@@ -68,7 +121,7 @@
 
 .giftplan-section {
   background: #23272e;
-  color: #
+  color: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   padding: 32px 24px;
@@ -92,7 +145,7 @@
 
 /* Match sidebar and separation style from todo list */
 #people-sidebar {
-  width: 200px;
+  width: 220px;
   background: #1a1a1a;
   border-right: 1px solid #333;
   padding: 20px 10px;
@@ -136,6 +189,81 @@
   background: #23272e;
   color: #ffaac9;
   border: 1.5px solid #FF4F91;
+}
+
+/* ===== ARCHIVED PEOPLE ===== */
+.toggle-archived-btn {
+  background: #2a2a2a;
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.9em;
+  width: 100%;
+  text-align: left;
+  margin-top: 8px;
+  transition: background 0.2s, color 0.2s;
+}
+.toggle-archived-btn:hover {
+  background: #333;
+  color: #aaa;
+}
+.toggle-archived-btn.expanded {
+  background: #333;
+  color: #ffaac9;
+}
+#archived-people-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 0 0;
+  overflow-y: auto;
+  max-height: 200px;
+}
+#archived-people-list li {
+  padding: 10px 10px;
+  color: #777;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  background: #1a1a1a;
+  border: 1.5px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  font-style: italic;
+  opacity: 0.7;
+}
+#archived-people-list li.selected, #archived-people-list li:hover {
+  background: #23272e;
+  color: #aaa;
+  border: 1.5px solid #555;
+  opacity: 1;
+}
+.person-archived-label {
+  color: #666;
+  font-size: 0.8em;
+  margin-left: 4px;
+}
+.person-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.archive-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.9em;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s, background 0.2s;
+}
+.archive-btn:hover {
+  opacity: 1;
+  background: rgba(255, 165, 0, 0.2);
 }
 #add-person-btn {
   background: #FF4F91;
@@ -405,4 +533,697 @@
 #year-select:focus {
   outline: none;
   border-color: #FF4F91;
+}
+
+/* ===== GIFT PLAN SECTION (Middle Column) ===== */
+/* Make middle and right columns equal width */
+#gift-plan-section {
+  flex: 1;
+  background: #1a1a1a;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid #333;
+  overflow-y: auto;
+}
+#gift-plan-title {
+  color: #ffaac9;
+}
+#selected-person-name {
+  color: #fff;
+}
+.giftplan-condensed-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #333;
+  background: #1a1a1a;
+}
+.giftplan-condensed-header label.condensed-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  cursor: pointer;
+}
+.giftplan-condensed-header input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #FF4F91;
+}
+#gift-plan-total {
+  color: #ffaac9;
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-left: auto;
+  padding: 0;
+  border-bottom: none;
+}
+#gift-boxes-container {
+  padding: 12px 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ===== YEAR SECTION HEADERS ===== */
+.year-section-header {
+  color: #ffaac9;
+  font-size: 1.15em;
+  font-weight: 600;
+  margin: 24px 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.year-section-header:first-child {
+  margin-top: 0;
+}
+.year-section-count {
+  color: #888;
+  font-size: 0.85em;
+  font-weight: normal;
+}
+
+/* ===== GIFT BOXES ===== */
+.gift-box {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.gift-box:hover {
+  border-color: #444;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.gift-box.priority-none {
+  border-left: 3px solid #555;
+}
+.gift-box.priority-low {
+  border-left: 4px solid #4fc3f7;
+}
+.gift-box.priority-medium {
+  border-left: 5px solid #ffa726;
+}
+.gift-box.priority-high {
+  border-left: 6px solid #ef5350;
+}
+.gift-box-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.gift-box-header .gift-status {
+  cursor: pointer;
+  font-size: 1.2em;
+  margin-right: 4px;
+  transition: transform 0.15s;
+}
+.gift-box-header .gift-status:hover {
+  transform: scale(1.1);
+}
+.gift-box-header strong {
+  color: #fff;
+  font-size: 1.05em;
+}
+.gift-box-header .gift-occasion {
+  color: #ffaac9;
+  font-size: 0.95em;
+}
+.gift-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gift-box-store-cost {
+  color: #aaa;
+  font-size: 0.95em;
+}
+.gift-box-store-cost .gift-cost {
+  color: #4caf50;
+  font-weight: 600;
+}
+.gift-box-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gift-box-actions .year-btn {
+  background: #333;
+  color: #4fc3f7;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.gift-box-actions .year-btn:hover {
+  background: #3a3a3a;
+  border-color: #4fc3f7;
+}
+.gift-box-actions .year-btn.unassigned {
+  color: #888;
+  border-style: dashed;
+}
+.gift-box-actions .edit-btn,
+.gift-box-actions .delete-btn {
+  background: transparent;
+  border: none;
+  font-size: 1em;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s, background 0.2s;
+}
+.gift-box-actions .edit-btn:hover {
+  opacity: 1;
+  background: rgba(79, 195, 247, 0.2);
+}
+.gift-box-actions .delete-btn:hover {
+  opacity: 1;
+  background: rgba(255, 68, 68, 0.2);
+}
+.gift-box-priority {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa;
+  font-size: 0.9em;
+}
+.gift-box-priority select {
+  background: #333;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.gift-box-priority select:focus {
+  outline: none;
+  border-color: #FF4F91;
+}
+.gift-box-notes {
+  color: #888;
+  font-size: 0.9em;
+  font-style: italic;
+  padding: 6px 0 0 0;
+  border-top: 1px solid #333;
+  margin-top: 4px;
+}
+.gift-box-notes::before {
+  content: '📝 ';
+}
+
+/* ===== STATS SECTION (Right Column) ===== */
+#stats-section {
+  flex: 1;
+  background: #1a1a1a;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #666;
+  text-align: center;
+}
+.placeholder-content.centered {
+  flex: 1;
+  min-height: 300px;
+}
+.placeholder-content p {
+  margin: 8px 0;
+  font-size: 1.1em;
+}
+
+/* ===== EMPTY STATES ===== */
+.empty-gifts-state {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 30px 20px;
+}
+.no-person-selected {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 60px 20px;
+}
+.no-person-selected p {
+  margin: 8px 0;
+}
+
+/* ===== YEAR PLAN VIEW ===== */
+.yearplan-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  background: #1a1a1a;
+  border-bottom: 2px solid #333;
+  justify-content: center;
+  height: 64px;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+.yearplan-header label {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+#yearplan-year-select {
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+}
+#yearplan-year-select:hover {
+  border-color: #777;
+}
+#yearplan-year-select:focus {
+  outline: none;
+  border-color: #FF4F91;
+}
+#yearplan-spent, #yearplan-potential {
+  color: #ffaac9;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+#yearplan-spent {
+  color: #4caf50;
+}
+
+/* Year Plan columns */
+.yearplan-columns {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+}
+#yearplan-given, #yearplan-received {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+}
+#yearplan-received {
+  border-right: none;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  color: #ffaac9;
+  font-weight: 600;
+  font-size: 1.15em;
+  border-bottom: 1px solid #333;
+  background: #1a1a1a;
+}
+.section-header button {
+  background: #FF4F91;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.2em;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.section-header button:hover {
+  background: #ffaac9;
+  color: #23272e;
+}
+#yearplan-given-list, #yearplan-received-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* Person grouping in Year Plan */
+.person-group {
+  margin-bottom: 28px;
+}
+.person-group:last-child {
+  margin-bottom: 0;
+}
+.person-group-header {
+  font-size: 1.15em;
+  font-weight: 600;
+  color: #ffaac9;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.person-link {
+  color: #4fc3f7;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.person-link:hover {
+  text-decoration: underline;
+  color: #81d4fa;
+}
+.person-archived-tag {
+  color: #888;
+  font-size: 0.85em;
+  font-style: italic;
+  font-weight: normal;
+}
+.person-gift-count {
+  color: #888;
+  font-size: 0.85em;
+  font-weight: normal;
+  margin-left: auto;
+}
+
+/* Totals in Year Plan */
+.yearplan-totals {
+  padding: 16px 20px;
+  border-top: 2px solid #333;
+  font-size: 1.05em;
+  font-weight: 600;
+  color: #ffaac9;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  background: #1a1a1a;
+  background: #1a1a1a;
+}
+.yearplan-totals .separator {
+  color: #555;
+}
+#yearplan-given-spent {
+  color: #4caf50;
+}
+#yearplan-given-potential {
+  color: #ffaac9;
+}
+
+/* Empty state for Year Plan */
+.yearplan-empty {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 40px 20px;
+}
+.yearplan-empty p {
+  margin: 8px 0;
+}
+
+/* ===== MODAL UPDATES ===== */
+.modal-row {
+  margin-top: 12px;
+}
+.modal-row label {
+  margin-top: 0;
+}
+#gift-person-select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 1em;
+}
+#add-person-from-gift {
+  background: #333;
+  color: #ffaac9;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+  font-size: 0.95em;
+  transition: background 0.2s, border-color 0.2s;
+}
+#add-person-from-gift:hover {
+  background: #444;
+  border-color: #FF4F91;
+}
+.modal-info {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  color: #aaa;
+  font-size: 0.9em;
+  border: 1px solid #333;
+}
+
+/* Received gift box (simpler style) */
+.gift-box.received {
+  border-left-color: #4fc3f7;
+}
+.gift-box.received .gift-box-header .gift-status {
+  display: none;
+}
+
+/* ===== STATS & HISTORY SECTION (Part 3) ===== */
+#stats-history-content {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Stats Summary */
+.stats-summary {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stats-title {
+  color: #ffaac9;
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-bottom: 12px;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 0.95em;
+  flex-wrap: wrap;
+}
+
+.stats-row:last-child {
+  margin-bottom: 0;
+}
+
+.stat-given {
+  color: #4fc3f7;
+}
+
+.stat-received {
+  color: #ffa726;
+}
+
+.stat-divider {
+  color: #555;
+}
+
+.stat-money {
+  color: #ffaac9;
+  font-weight: 600;
+}
+
+/* History Section */
+.history-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.history-title {
+  color: #ffaac9;
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-bottom: 12px;
+}
+
+.history-columns {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+  min-height: 200px;
+}
+
+.history-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.history-col-header {
+  color: #aaa;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+  text-align: center;
+}
+
+.history-timeline {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* History years */
+.history-year {
+  margin-bottom: 12px;
+}
+
+.history-year:last-child {
+  margin-bottom: 0;
+}
+
+.history-year-header {
+  color: #ffaac9;
+  font-weight: 600;
+  padding: 6px 8px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  font-size: 0.9em;
+}
+
+.history-year-header:hover {
+  background: #2a2a2a;
+}
+
+.year-toggle {
+  color: #888;
+  font-size: 0.8em;
+}
+
+.history-year-content {
+  padding: 6px 8px;
+}
+
+.history-year-content.collapsed {
+  display: none;
+}
+
+.history-item {
+  color: #fff;
+  padding: 5px 0;
+  font-size: 0.85em;
+  border-bottom: 1px solid #23272e;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-occasion {
+  flex-shrink: 0;
+}
+
+.history-cost {
+  color: #4caf50;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* View More button */
+.view-more-btn {
+  background: #333;
+  color: #ffaac9;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 12px;
+  width: 100%;
+  transition: background 0.2s;
+  font-size: 0.9em;
+}
+
+.view-more-btn:hover {
+  background: #444;
+}
+
+/* Empty states */
+.stats-empty, .history-empty {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 10px;
+  font-size: 0.9em;
+}
+
+.history-col-empty {
+  color: #555;
+  font-style: italic;
+  text-align: center;
+  padding: 16px 8px;
+  font-size: 0.85em;
+}
+
+/* ===== YEAR PLAN VIEW ===== */
+#yearplan-view {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  min-height: 0;
 }
