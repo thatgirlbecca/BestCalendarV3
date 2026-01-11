@@ -4,6 +4,7 @@
 // --- State ---
 // --- Persistent State ---
 let currentView = localStorage.getItem('giftplan_currentView') || 'people'; // 'people' or 'yearplan'
+let editingPerson = null; // For summary modal
 let currentYear = new Date().getFullYear();
 let yearPlanYear = parseInt(localStorage.getItem('giftplan_yearPlanYear'), 10) || new Date().getFullYear();
 let showAllYears = localStorage.getItem('giftplan_showAllYears') === 'true'; // Toggle for year filter in People View
@@ -108,7 +109,7 @@ function handleYearFilterChange() {
     label.textContent = showAllYears ? '(Showing: All Years)' : '(Currently: This Year Only)';
   }
   
-  renderGiftBoxes();
+  renderGiftIdeas();
 }
 window.handleYearFilterChange = handleYearFilterChange;
 
@@ -295,10 +296,10 @@ async function loadData() {
     allGiftsForPerson = [];
   }
   
-  renderGiftBoxes();
-  
-  // Render stats and history
-  renderStatsAndHistory();
+  renderGiftIdeas();
+  renderGiftsGiven();
+  renderGiftsReceived();
+  renderStatsOnly();
   
   console.log('[GiftPlan] Data loaded. People:', allPeople.length, 'Archived:', archivedPeople.length);
 }
@@ -372,19 +373,12 @@ function renderPeopleList() {
     const actions = document.createElement('div');
     actions.className = 'person-actions';
     
-    const archiveBtn = document.createElement('button');
-    archiveBtn.className = 'archive-btn';
-    archiveBtn.textContent = '📁';
-    archiveBtn.title = 'Archive Person';
-    archiveBtn.onclick = (e) => { e.stopPropagation(); toggleArchive(person.id); };
-    actions.appendChild(archiveBtn);
-    
-    const delBtn = document.createElement('button');
-    delBtn.className = 'delete-btn';
-    delBtn.textContent = '🗑️';
-    delBtn.title = 'Delete Person';
-    delBtn.onclick = (e) => { e.stopPropagation(); deletePerson(person.id); };
-    actions.appendChild(delBtn);
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn';
+    editBtn.innerHTML = '&#8942;'; // vertical ellipsis (triple dot menu)
+    editBtn.title = 'Person Menu';
+    editBtn.onclick = (e) => { e.stopPropagation(); openPersonSummaryModal(person); };
+    actions.appendChild(editBtn);
     
     li.appendChild(actions);
     ul.appendChild(li);
@@ -439,7 +433,7 @@ function renderArchivedPeopleList() {
   });
 }
 
-function renderGiftBoxes() {
+function renderGiftIdeas() {
   const container = document.getElementById('gift-boxes-container');
   const titleEl = document.getElementById('selected-person-name');
   const totalEl = document.getElementById('gift-plan-total');
@@ -452,11 +446,11 @@ function renderGiftBoxes() {
 
   if (!selectedPersonId) {
     if (titleEl) titleEl.textContent = 'Select a Person';
-    if (totalEl) totalEl.textContent = 'Total: $0.00';
+    if (totalEl) totalEl.textContent = 'Potential: $0.00';
     container.innerHTML = `
       <div class="no-person-selected">
         <p>👈 Select a person from the list</p>
-        <p>to view and manage their gift plan</p>
+        <p>to view and manage their gift ideas</p>
       </div>
     `;
     return;
@@ -478,17 +472,18 @@ function renderGiftBoxes() {
     }
   }
 
-  const filteredGifts = filterGiftsByYear(allGiftsForPerson, showAllYears, currentYear);
+  // Filter to only show 'idea' type gifts
+  const ideaGifts = allGiftsForPerson.filter(g => g.type === 'idea');
+  const filteredGifts = filterGiftsByYear(ideaGifts, showAllYears, currentYear);
 
-  const total = filteredGifts
-    .filter(g => g.status === 'purchased')
-    .reduce((sum, g) => sum + (+g.cost || 0), 0);
-  if (totalEl) totalEl.textContent = `Total: ${formatCurrency(total)}`;
+  // Calculate potential cost (sum of all idea costs)
+  const potentialCost = filteredGifts.reduce((sum, g) => sum + (+g.cost || 0), 0);
+  if (totalEl) totalEl.textContent = `Potential: ${formatCurrency(potentialCost)}`;
 
   if (filteredGifts.length === 0) {
     container.innerHTML = `
       <div class="empty-gifts-state">
-        <p>No gifts yet for ${person?.name || 'this person'}.</p>
+        <p>No gift ideas yet for ${person?.name || 'this person'}.</p>
         <p>Click the + button above to add a gift idea!</p>
       </div>
     `;
@@ -498,14 +493,14 @@ function renderGiftBoxes() {
   const grouped = groupGiftsByYear(filteredGifts);
 
   if (grouped.anytime.length > 0) {
-    const section = createYearSection('💡 GIFT IDEAS (ANYTIME)', grouped.anytime);
+    const section = createYearSection('💡 IDEAS (ANYTIME)', grouped.anytime);
     container.appendChild(section);
   }
   
   const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
   years.forEach(year => {
     const gifts = grouped.byYear[year];
-    const section = createYearSection(`📅 ${year} GIFTS`, gifts);
+    const section = createYearSection(`📅 ${year} IDEAS`, gifts);
     container.appendChild(section);
   });
 }
@@ -535,14 +530,7 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   const header = document.createElement('div');
   header.className = 'gift-box-header';
   
-  if (!isReceived) {
-    const statusSpan = document.createElement('span');
-    statusSpan.className = `gift-status ${gift.status || 'idea'}`;
-    statusSpan.textContent = getStatusIcon(gift.status);
-    statusSpan.title = 'Click to change status';
-    statusSpan.onclick = () => cycleGiftStatus(gift);
-    header.appendChild(statusSpan);
-  }
+  // No status icon or cycling in new system
   
   const itemSpan = document.createElement('strong');
   itemSpan.textContent = gift.item || '(No item)';
@@ -554,13 +542,13 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   const body = document.createElement('div');
   body.className = 'gift-box-body';
   
-  // Store + Cost (only for given gifts)
+  // Cost + Store (only for given gifts)
   if (!isReceived && (gift.store || gift.cost)) {
     const storeCost = document.createElement('div');
     storeCost.className = 'gift-box-store-cost';
     const parts = [];
-    if (gift.store) parts.push(gift.store);
     if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
+    if (gift.store) parts.push(gift.store);
     storeCost.innerHTML = parts.join(' - ');
     body.appendChild(storeCost);
   }
@@ -570,18 +558,52 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   actions.className = 'gift-box-actions';
   
   if (!isReceived) {
-    // Year button
-    const yearBtn = document.createElement('button');
-    yearBtn.className = 'year-btn' + (gift.year ? '' : ' unassigned');
-    if (gift.year && gift.occasion) {
-      yearBtn.textContent = `[${gift.year}-${capitalizeOccasion(gift.occasion)}]`;
-    } else if (gift.year) {
-      yearBtn.textContent = `[${gift.year}]`;
-    } else {
-      yearBtn.textContent = '[Assign to Year]';
-    }
-    yearBtn.onclick = () => openEditGiftModal(gift);
-    actions.appendChild(yearBtn);
+    // Year dropdown
+    const now = new Date().getFullYear();
+    const years = [now - 1, now, now + 1, now + 2];
+    const yearSelect = document.createElement('select');
+    yearSelect.className = 'year-btn';
+    yearSelect.title = 'Change Year';
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = '[Assign to Year]';
+    if (!gift.year) placeholderOption.selected = true;
+    yearSelect.appendChild(placeholderOption);
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = gift.occasion ? `[${y}-${capitalizeOccasion(gift.occasion)}]` : `[${y}]`;
+      if (gift.year == y) opt.selected = true;
+      yearSelect.appendChild(opt);
+    });
+    yearSelect.onchange = async function() {
+      const newYear = this.value ? parseInt(this.value, 10) : null;
+      if (newYear !== gift.year) {
+        // Update year in backend and UI
+        try {
+          const { error } = await supabaseClient
+            .from('gifts')
+            .update({ year: newYear })
+            .eq('id', gift.id);
+          if (!error) {
+            gift.year = newYear;
+            // Optionally re-render the list or just update UI
+            renderGiftIdeas();
+          }
+        } catch (e) { console.error('Failed to update year', e); }
+      }
+    };
+    actions.appendChild(yearSelect);
+  }
+  
+  // Promote to Given button (only for idea-type gifts)
+  if (gift.type === 'idea') {
+    const promoteBtn = document.createElement('button');
+    promoteBtn.className = 'promote-btn';
+    promoteBtn.textContent = '→ Given';
+    promoteBtn.title = 'Convert to Given Gift';
+    promoteBtn.onclick = () => promoteIdeaToGiven(gift.id);
+    actions.appendChild(promoteBtn);
   }
   
   // Edit button
@@ -602,21 +624,7 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   
   body.appendChild(actions);
   
-  // Priority selector (only for given gifts)
-  if (!isReceived) {
-    const priorityDiv = document.createElement('div');
-    priorityDiv.className = 'gift-box-priority';
-    priorityDiv.innerHTML = `
-      Priority: 
-      <select onchange="updateGiftPriority('${gift.id}', this.value)">
-        <option value="none" ${gift.priority === 'none' || !gift.priority ? 'selected' : ''}>None</option>
-        <option value="low" ${gift.priority === 'low' ? 'selected' : ''}>Low</option>
-        <option value="medium" ${gift.priority === 'medium' ? 'selected' : ''}>Medium</option>
-        <option value="high" ${gift.priority === 'high' ? 'selected' : ''}>High</option>
-      </select>
-    `;
-    body.appendChild(priorityDiv);
-  }
+  // ...priority selector removed from gift box view...
   
   // Notes
   if (gift.notes) {
@@ -728,24 +736,16 @@ function createPersonLink(personId, personName, isArchived) {
 }
 
 function updateYearPlanTotals(givenGifts) {
-  const spent = givenGifts
-    .filter(g => g.status === 'purchased')
-    .reduce((sum, g) => sum + (+g.cost || 0), 0);
+  // Sum all given gifts (no longer filtering by status)
+  const totalSpent = givenGifts.reduce((sum, g) => sum + (+g.cost || 0), 0);
   
-  const potential = givenGifts
-    .reduce((sum, g) => sum + (+g.cost || 0), 0);
-  
-  // Header totals
+  // Header total
   const spentEl = document.getElementById('yearplan-spent');
-  const potentialEl = document.getElementById('yearplan-potential');
-  if (spentEl) spentEl.textContent = `Spent: ${formatCurrency(spent)}`;
-  if (potentialEl) potentialEl.textContent = `Potential: ${formatCurrency(potential)}`;
+  if (spentEl) spentEl.textContent = `Total Spent: ${formatCurrency(totalSpent)}`;
   
-  // Column totals
+  // Column total
   const givenSpentEl = document.getElementById('yearplan-given-spent');
-  const givenPotentialEl = document.getElementById('yearplan-given-potential');
-  if (givenSpentEl) givenSpentEl.textContent = `Spent: ${formatCurrency(spent)}`;
-  if (givenPotentialEl) givenPotentialEl.textContent = `Potential: ${formatCurrency(potential)}`;
+  if (givenSpentEl) givenSpentEl.textContent = `Spent: ${formatCurrency(totalSpent)}`;
 }
 
 // --- Event Handlers ---
@@ -772,10 +772,10 @@ async function loadGiftsForSelectedPerson() {
   } else {
     allGiftsForPerson = [];
   }
-  renderGiftBoxes();
-  
-  // Render stats and history
-  renderStatsAndHistory();
+  renderGiftIdeas();
+  renderGiftsGiven();
+  renderGiftsReceived();
+  renderStatsOnly();
 }
 
 // --- Stats & History Functions ---
@@ -875,17 +875,9 @@ function buildHistoryColumn(gifts, years, type) {
   
   years.forEach(year => {
     const yearGifts = gifts.filter(g => g.year === year && g.type === type);
-    
-    // For 'given', only show purchased. For 'received', show all
-    const filteredGifts = type === 'given' 
-      ? yearGifts.filter(g => g.status === 'purchased')
-      : yearGifts;
-    
-    if (filteredGifts.length === 0) return;
+    if (yearGifts.length === 0) return;
     hasAnyGifts = true;
-    
     const isCollapsed = collapsedYears.has(`${type}-${year}`);
-    
     html += `
       <div class="history-year" data-year="${year}" data-type="${type}">
         <div class="history-year-header" onclick="toggleHistoryYear(${year}, '${type}')">
@@ -893,11 +885,9 @@ function buildHistoryColumn(gifts, years, type) {
         </div>
         <div class="history-year-content${isCollapsed ? ' collapsed' : ''}">
     `;
-    
-    filteredGifts.forEach(gift => {
+    yearGifts.forEach(gift => {
       const occasionIcon = getOccasionIcon(gift.occasion);
       const costDisplay = type === 'given' && gift.cost ? `<span class="history-cost">${formatCurrency(gift.cost)}</span>` : '';
-      
       html += `
         <div class="history-item">
           <span class="history-item-text">${gift.item || '(No item)'}</span>
@@ -906,7 +896,6 @@ function buildHistoryColumn(gifts, years, type) {
         </div>
       `;
     });
-    
     html += `
         </div>
       </div>
@@ -967,18 +956,311 @@ function renderHistory(personGifts) {
   container.innerHTML = historyHTML;
 }
 
-function renderStatsAndHistory() {
+// --- Render Given/Received Columns ---
+function renderGiftsGiven() {
+  const container = document.getElementById('gifts-given-list');
+  const totalEl = document.getElementById('gifts-given-total');
+  
+  if (!container) return;
+  container.innerHTML = '';
+  
   if (!selectedPersonId) {
-    const statsContainer = document.getElementById('stats-container');
-    const historyContainer = document.getElementById('history-container');
+    container.innerHTML = '<div class="gift-column-empty">Select a person to view given gifts</div>';
+    if (totalEl) totalEl.textContent = 'Total Spent: $0.00';
+    return;
+  }
+  
+  // Filter to only 'given' type gifts
+  const givenGifts = allGiftsForPerson.filter(g => g.type === 'given');
+  
+  // Calculate total spent
+  const totalSpent = givenGifts.reduce((sum, g) => sum + (+g.cost || 0), 0);
+  if (totalEl) totalEl.textContent = `Total Spent: ${formatCurrency(totalSpent)}`;
+  
+  if (givenGifts.length === 0) {
+    container.innerHTML = '<div class="gift-column-empty">No gifts given yet</div>';
+    return;
+  }
+  
+  // Group by year
+  const grouped = groupGiftsByYear(givenGifts);
+  
+  // Render anytime gifts first
+  if (grouped.anytime.length > 0) {
+    const section = createGiftColumnSection('No Year', grouped.anytime, false, true);
+    container.appendChild(section);
+  }
+  // Render by year (descending)
+  const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
+  years.forEach(year => {
+    const gifts = grouped.byYear[year];
+    const section = createGiftColumnSection(year, gifts, false, false);
+    container.appendChild(section);
+  });
+}
+
+function renderGiftsReceived() {
+  const container = document.getElementById('gifts-received-list');
+  
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (!selectedPersonId) {
+    container.innerHTML = '<div class="gift-column-empty">Select a person to view received gifts</div>';
+    return;
+  }
+  
+  // Filter to only 'received' type gifts
+  const receivedGifts = allGiftsForPerson.filter(g => g.type === 'received');
+  
+  if (receivedGifts.length === 0) {
+    container.innerHTML = '<div class="gift-column-empty">No gifts received yet</div>';
+    return;
+  }
+  
+  // Group by year
+  const grouped = groupGiftsByYear(receivedGifts);
+  
+  // Render anytime gifts first
+  if (grouped.anytime.length > 0) {
+    const section = createGiftColumnSection('No Year', grouped.anytime, true, true);
+    container.appendChild(section);
+  }
+  // Render by year (descending)
+  const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
+  years.forEach(year => {
+    const gifts = grouped.byYear[year];
+    const section = createGiftColumnSection(year, gifts, true, false);
+    container.appendChild(section);
+  });
+}
+
+function createGiftColumnSection(title, gifts, isReceived, isAnytime) {
+  // Collapsible for years, not for 'No Year'
+  const section = document.createElement('div');
+  section.className = isAnytime ? 'year-section anytime-section' : 'year-section';
+  if (isAnytime) {
+    // Not collapsible
+    const header = document.createElement('div');
+    header.className = 'year-section-header';
+    header.innerHTML = `📅 ${title} <span class="year-section-count">(${gifts.length})</span>`;
+    section.appendChild(header);
+    gifts.forEach(gift => {
+      const box = createGiftColumnBox(gift, isReceived);
+      section.appendChild(box);
+    });
+    return section;
+  }
+  // Collapsible year section
+  const yearKey = `${isReceived ? 'received' : 'given'}-${title}`;
+  const isCollapsed = collapsedYears.has(yearKey);
+  const header = document.createElement('div');
+  header.className = 'year-section-header';
+  header.innerHTML = `📅 ${title} <span class="year-section-count">(${gifts.length})</span> <span class="year-toggle">${isCollapsed ? '▶' : '▼'}</span>`;
+  header.style.cursor = 'pointer';
+  header.onclick = function() {
+    if (collapsedYears.has(yearKey)) {
+      collapsedYears.delete(yearKey);
+    } else {
+      collapsedYears.add(yearKey);
+    }
+    if (isReceived) {
+      renderGiftsReceived();
+    } else {
+      renderGiftsGiven();
+    }
+  };
+  section.appendChild(header);
+  const content = document.createElement('div');
+  content.className = 'year-section-content' + (isCollapsed ? ' collapsed' : '');
+  if (!isCollapsed) {
+    gifts.forEach(gift => {
+      const box = createGiftColumnBox(gift, isReceived);
+      content.appendChild(box);
+    });
+  }
+  section.appendChild(content);
+  return section;
+}
+
+function createGiftColumnBox(gift, isReceived) {
+  const box = document.createElement('div');
+  box.className = `gift-box${isReceived ? ' received' : ''}`;
+  
+  // Header with item name
+  const header = document.createElement('div');
+  header.className = 'gift-box-header';
+  const itemSpan = document.createElement('strong');
+  itemSpan.textContent = gift.item || '(No item)';
+  header.appendChild(itemSpan);
+  box.appendChild(header);
+  
+  // Body
+  const body = document.createElement('div');
+  body.className = 'gift-box-body';
+  
+  // Cost + Store (only for given gifts)
+  if (!isReceived && (gift.store || gift.cost)) {
+    const storeCost = document.createElement('div');
+    storeCost.className = 'gift-box-store-cost';
+    const parts = [];
+    if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
+    if (gift.store) parts.push(gift.store);
+    storeCost.innerHTML = parts.join(' - ');
+    body.appendChild(storeCost);
+  }
+  
+  // Actions row
+  const actions = document.createElement('div');
+  actions.className = 'gift-box-actions';
+  
+  // Year dropdown
+  const now = new Date().getFullYear();
+  const years = [now - 1, now, now + 1, now + 2];
+  const yearSelect = document.createElement('select');
+  yearSelect.className = 'year-btn';
+  yearSelect.title = 'Change Year';
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = '[Year]';
+  if (!gift.year) placeholderOption.selected = true;
+  yearSelect.appendChild(placeholderOption);
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = `${y}`;
+    if (gift.year == y) opt.selected = true;
+    yearSelect.appendChild(opt);
+  });
+  yearSelect.onchange = async function() {
+    const newYear = this.value ? parseInt(this.value, 10) : null;
+    if (newYear !== gift.year) {
+      try {
+        const { error } = await supabaseClient
+          .from('gifts')
+          .update({ year: newYear })
+          .eq('id', gift.id);
+        if (!error) {
+          gift.year = newYear;
+          if (isReceived) {
+            renderGiftsReceived();
+          } else {
+            renderGiftsGiven();
+          }
+        }
+      } catch (e) { console.error('Failed to update year', e); }
+    }
+  };
+  actions.appendChild(yearSelect);
+  
+  // Edit button
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-btn';
+  editBtn.textContent = '✏️';
+  editBtn.title = 'Edit Gift';
+  editBtn.onclick = () => openEditGiftModal(gift);
+  actions.appendChild(editBtn);
+  
+  // Delete button
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-btn';
+  delBtn.textContent = '🗑️';
+  delBtn.title = 'Delete Gift';
+  delBtn.onclick = () => deleteGift(gift.id);
+  actions.appendChild(delBtn);
+  
+  body.appendChild(actions);
+  
+  // Notes
+  if (gift.notes) {
+    const notes = document.createElement('div');
+    notes.className = 'gift-box-notes';
+    notes.textContent = gift.notes;
+    body.appendChild(notes);
+  }
+  
+  box.appendChild(body);
+  return box;
+}
+
+// --- Modal openers for given/received ---
+function openAddGivenGiftModal() {
+  if (!selectedPersonId) {
+    alert('Please select a person first.');
+    return;
+  }
+  giftModalMode = 'add-given';
+  editingGift = null;
+  
+  populateYearDropdown();
+  
+  document.getElementById('modal-overlay').style.display = 'block';
+  document.getElementById('gift-modal').style.display = 'block';
+  document.getElementById('gift-modal-title').textContent = 'Add Given Gift';
+  
+  // Hide person selector (we know the person)
+  document.getElementById('gift-person-row').style.display = 'none';
+  
+  // Show relevant fields
+  document.getElementById('gift-store-row').style.display = 'block';
+  document.getElementById('gift-cost-row').style.display = 'block';
+  document.getElementById('gift-priority-row').style.display = 'none';
+  document.getElementById('gift-type-row').style.display = 'none';
+  document.getElementById('gift-modal-info').style.display = 'none';
+  
+  // Reset form
+  document.getElementById('gift-form').reset();
+  document.getElementById('gift-type').value = 'given';
+  
+  // Set form handler
+  document.getElementById('gift-form').onsubmit = handleGiftFormSubmit;
+}
+window.openAddGivenGiftModal = openAddGivenGiftModal;
+
+function openAddReceivedGiftModal() {
+  if (!selectedPersonId) {
+    alert('Please select a person first.');
+    return;
+  }
+  giftModalMode = 'add-received';
+  editingGift = null;
+  
+  populateYearDropdown();
+  
+  document.getElementById('modal-overlay').style.display = 'block';
+  document.getElementById('gift-modal').style.display = 'block';
+  document.getElementById('gift-modal-title').textContent = 'Add Received Gift';
+  
+  // Hide person selector (we know the person)
+  document.getElementById('gift-person-row').style.display = 'none';
+  
+  // Hide cost/store/priority for received gifts
+  document.getElementById('gift-store-row').style.display = 'none';
+  document.getElementById('gift-cost-row').style.display = 'none';
+  document.getElementById('gift-priority-row').style.display = 'none';
+  document.getElementById('gift-type-row').style.display = 'none';
+  document.getElementById('gift-modal-info').style.display = 'none';
+  
+  // Reset form
+  document.getElementById('gift-form').reset();
+  document.getElementById('gift-type').value = 'received';
+  
+  // Set form handler
+  document.getElementById('gift-form').onsubmit = handleGiftFormSubmit;
+}
+window.openAddReceivedGiftModal = openAddReceivedGiftModal;
+
+// --- Render Stats Only (no history) ---
+function renderStatsOnly() {
+  const statsContainer = document.getElementById('stats-container');
+  
+  if (!selectedPersonId) {
     if (statsContainer) statsContainer.innerHTML = '<div class="stats-empty">Select a person to view stats</div>';
-    if (historyContainer) historyContainer.innerHTML = '';
     return;
   }
   
   const stats = calculateStats(allGiftsForPerson);
   renderStats(stats);
-  renderHistory(allGiftsForPerson);
 }
 
 function toggleHistoryYear(year, type) {
@@ -1030,7 +1312,7 @@ async function updateGiftPriority(giftId, priority) {
     
     // Re-render current view
     if (currentView === 'people') {
-      renderGiftBoxes();
+      renderGiftIdeas();
     } else {
       renderYearPlanView();
     }
@@ -1040,32 +1322,42 @@ async function updateGiftPriority(giftId, priority) {
 }
 window.updateGiftPriority = updateGiftPriority;
 
-// --- Status Cycling ---
-async function cycleGiftStatus(gift) {
-  const next = gift.status === 'idea' ? 'purchased' : (gift.status === 'purchased' ? 'rejected' : 'idea');
-  console.log('[GiftPlan] Cycling status:', gift.id, gift.status, '->', next);
+// --- Promote Idea to Given ---
+async function promoteIdeaToGiven(giftId) {
+  console.log('[GiftPlan] Promoting idea to given:', giftId);
   try {
     const { error } = await supabaseClient
       .from('gifts')
-      .update({ status: next })
-      .eq('id', gift.id);
+      .update({ type: 'given', priority: null })
+      .eq('id', giftId);
     
     if (error) {
-      console.error('[GiftPlan] Error updating status:', error);
+      console.error('[GiftPlan] Error promoting gift:', error);
       return;
     }
     
-    gift.status = next;
-    
-    if (currentView === 'people') {
-      renderGiftBoxes();
-    } else {
-      renderYearPlanView();
+    // Update local state
+    const gift = allGiftsForPerson.find(g => g.id === giftId);
+    if (gift) {
+      gift.type = 'given';
+      gift.priority = null;
     }
+    
+    const yearGift = yearPlanGifts.find(g => g.id === giftId);
+    if (yearGift) {
+      yearGift.type = 'given';
+      yearGift.priority = null;
+    }
+    
+    // Refresh views
+    renderGiftIdeas();
+    renderGiftsGiven();
+    renderStatsOnly();
   } catch (err) {
-    console.error('[GiftPlan] Exception updating status:', err);
+    console.error('[GiftPlan] Exception promoting gift:', err);
   }
 }
+window.promoteIdeaToGiven = promoteIdeaToGiven;
 
 // --- Delete ---
 async function deleteGift(giftId) {
@@ -1086,7 +1378,10 @@ async function deleteGift(giftId) {
     yearPlanGifts = yearPlanGifts.filter(g => g.id !== giftId);
     
     if (currentView === 'people') {
-      renderGiftBoxes();
+      renderGiftIdeas();
+      renderGiftsGiven();
+      renderGiftsReceived();
+      renderStatsOnly();
     } else {
       renderYearPlanView();
     }
@@ -1149,7 +1444,98 @@ function initEventListeners() {
   }
 }
 
-// --- Person Modal ---
+// --- Person Summary Modal ---
+function openPersonSummaryModal(person) {
+  editingPerson = person;
+  document.getElementById('modal-overlay').style.display = 'block';
+  document.getElementById('person-summary-modal').style.display = 'block';
+  document.getElementById('person-summary-title').textContent = person.name + ' Summary';
+  // Info summary
+  let infoHtml = '';
+  infoHtml += `<div><strong>Name:</strong> <span id="person-summary-name">${person.name}</span></div>`;
+  if (person.birthday) infoHtml += `<div><strong>Birthday:</strong> <span id="person-summary-birthday">${person.birthday}</span></div>`;
+  // Calculate stats for this person
+  const stats = calculateStats(allGiftsForPerson);
+  infoHtml += `<div><strong>Total Gifts Given:</strong> ${stats.allGiven}</div>`;
+  infoHtml += `<div><strong>Total Gifts Received:</strong> ${stats.allReceived}</div>`;
+  infoHtml += `<div><strong>Notes:</strong> <span id="person-summary-notes">${person.notes ? person.notes.replace(/\n/g, '<br>') : ''}</span></div>`;
+  document.getElementById('person-summary-info').innerHTML = infoHtml;
+  // Hide edit fields and show summary
+  document.getElementById('person-summary-edit-fields').style.display = 'none';
+  document.getElementById('edit-person-btn').style.display = '';
+  document.getElementById('save-person-edit-btn').style.display = 'none';
+  document.getElementById('cancel-person-edit-btn').style.display = 'none';
+}
+
+function closePersonSummaryModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.getElementById('person-summary-modal').style.display = 'none';
+  editingPerson = null;
+}
+window.closePersonSummaryModal = closePersonSummaryModal;
+
+// Save notes
+document.addEventListener('DOMContentLoaded', function() {
+  // Edit button logic
+  const editBtn = document.getElementById('edit-person-btn');
+  const saveBtn = document.getElementById('save-person-edit-btn');
+  const cancelBtn = document.getElementById('cancel-person-edit-btn');
+  const editFields = document.getElementById('person-summary-edit-fields');
+  const infoDiv = document.getElementById('person-summary-info');
+  const form = document.getElementById('person-summary-form');
+
+  if (editBtn && saveBtn && cancelBtn && editFields && infoDiv && form) {
+    editBtn.onclick = function() {
+      // Show edit fields, hide summary
+      document.getElementById('person-edit-name').value = editingPerson.name;
+      document.getElementById('person-edit-birthday').value = editingPerson.birthday || '';
+      document.getElementById('person-edit-notes').value = editingPerson.notes || '';
+      editFields.style.display = '';
+      infoDiv.style.display = 'none';
+      editBtn.style.display = 'none';
+      saveBtn.style.display = '';
+      cancelBtn.style.display = '';
+    };
+    cancelBtn.onclick = function() {
+      // Hide edit fields, show summary
+      editFields.style.display = 'none';
+      infoDiv.style.display = '';
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+    };
+    form.onsubmit = async function(e) {
+      e.preventDefault();
+      if (!editingPerson) return;
+      const name = document.getElementById('person-edit-name').value.trim();
+      const birthday = document.getElementById('person-edit-birthday').value.trim();
+      const notes = document.getElementById('person-edit-notes').value;
+      if (!name) return;
+      // Update in Supabase
+      const { error } = await supabaseClient
+        .from('people')
+        .update({ name, birthday, notes })
+        .eq('id', editingPerson.id);
+      if (error) {
+        alert('Failed to save changes.');
+        return;
+      }
+      // Update local state
+      editingPerson.name = name;
+      editingPerson.birthday = birthday;
+      editingPerson.notes = notes;
+      const p = allPeopleList.find(p => p.id === editingPerson.id);
+      if (p) {
+        p.name = name;
+        p.birthday = birthday;
+        p.notes = notes;
+      }
+      // Re-render summary
+      openPersonSummaryModal(editingPerson);
+      renderPeopleList();
+    };
+  }
+});
 function openPersonModal() {
   document.getElementById('modal-overlay').style.display = 'block';
   document.getElementById('person-modal').style.display = 'block';
@@ -1266,7 +1652,7 @@ function populatePersonDropdown() {
   }
 }
 
-// Open gift modal for People View (person already selected)
+// Open gift modal for People View (person already selected) - creates an "idea" type gift
 function openGiftModalForPerson() {
   giftModalMode = 'people';
   editingGift = null;
@@ -1275,16 +1661,15 @@ function openGiftModalForPerson() {
   
   document.getElementById('modal-overlay').style.display = 'block';
   document.getElementById('gift-modal').style.display = 'block';
-  document.getElementById('gift-modal-title').textContent = 'Add Gift';
+  document.getElementById('gift-modal-title').textContent = 'Add Gift Idea';
   
   // Hide person selector (we know the person)
   document.getElementById('gift-person-row').style.display = 'none';
   
-  // Show all given gift fields
+  // Show fields for idea (priority shown, store/cost optional but shown)
   document.getElementById('gift-store-row').style.display = 'block';
   document.getElementById('gift-cost-row').style.display = 'block';
   document.getElementById('gift-priority-row').style.display = 'block';
-  document.getElementById('gift-status-row').style.display = 'none';
   document.getElementById('gift-type-row').style.display = 'none';
   document.getElementById('gift-modal-info').style.display = 'none';
   
@@ -1317,13 +1702,25 @@ function openYearPlanGiftModal(type) {
   // Show/hide fields based on type
   document.getElementById('gift-store-row').style.display = isReceived ? 'none' : 'block';
   document.getElementById('gift-cost-row').style.display = isReceived ? 'none' : 'block';
-  document.getElementById('gift-priority-row').style.display = isReceived ? 'none' : 'block';
-  document.getElementById('gift-status-row').style.display = 'none';
-  document.getElementById('gift-type-row').style.display = 'none';
+  document.getElementById('gift-priority-row').style.display = 'none'; // No priority for given/received
+  document.getElementById('gift-type-row').style.display = 'block';
+  // Set the type select to match the initial type
+  document.getElementById('gift-type').value = isReceived ? 'received' : 'given';
+  // Add event listener to update fields when type changes
+  document.getElementById('gift-type').onchange = function() {
+    const selectedType = this.value;
+    const isReceivedType = selectedType === 'received';
+    const isIdeaType = selectedType === 'idea';
+    document.getElementById('gift-modal-title').textContent = isReceivedType ? 'Add Received Gift' : (isIdeaType ? 'Add Gift Idea' : 'Add Gift');
+    document.querySelector('#gift-person-row label').textContent = isReceivedType ? 'Gift from:' : 'Gift for:';
+    document.getElementById('gift-store-row').style.display = isReceivedType ? 'none' : 'block';
+    document.getElementById('gift-cost-row').style.display = isReceivedType ? 'none' : 'block';
+    document.getElementById('gift-priority-row').style.display = isIdeaType ? 'block' : 'none';
+  };
   
   // Show info
   document.getElementById('gift-modal-info').style.display = 'block';
-  document.getElementById('gift-year-display').textContent = `Year: ${yearPlanYear} (auto-assigned) | Status: Idea`;
+  document.getElementById('gift-year-display').textContent = `Year: ${yearPlanYear} (auto-assigned)`;
   
   // Reset form
   document.getElementById('gift-form').reset();
@@ -1351,10 +1748,10 @@ function openEditGiftModal(gift) {
   document.querySelector('#gift-person-row label').textContent = gift.type === 'received' ? 'Gift from:' : 'Gift for:';
   document.getElementById('gift-store-row').style.display = 'block';
   document.getElementById('gift-cost-row').style.display = 'block';
-  document.getElementById('gift-priority-row').style.display = 'block';
-  document.getElementById('gift-status-row').style.display = 'block';
   document.getElementById('gift-type-row').style.display = 'block';
   document.getElementById('gift-modal-info').style.display = 'none';
+  // Only show priority for 'idea' gifts
+  document.getElementById('gift-priority-row').style.display = (gift.type === 'idea') ? 'block' : 'none';
   
   // Populate form
   document.getElementById('gift-person-select').value = gift.person_id || '';
@@ -1364,7 +1761,7 @@ function openEditGiftModal(gift) {
   document.getElementById('gift-priority').value = gift.priority || 'none';
   document.getElementById('gift-store').value = gift.store || '';
   document.getElementById('gift-cost').value = gift.cost || '';
-  document.getElementById('gift-status').value = gift.status || 'idea';
+  // No status field
   document.getElementById('gift-type').value = gift.type || 'given';
   document.getElementById('gift-notes').value = gift.notes || '';
   
@@ -1380,29 +1777,30 @@ async function handleGiftFormSubmit(e) {
   if (!occasion || occasion === '') occasion = 'anytime';
   const yearVal = document.getElementById('gift-year').value;
   const year = (!yearVal || yearVal === '' || yearVal === 'anytime') ? null : parseInt(yearVal, 10);
-  const priority = document.getElementById('gift-priority').value || 'none';
+  let priority = null;
   const store = document.getElementById('gift-store').value.trim();
   const cost = +document.getElementById('gift-cost').value || 0;
   const notes = document.getElementById('gift-notes').value.trim();
-  
-  let personId, status, type;
 
+  let personId, type;
   if (giftModalMode === 'edit') {
     personId = document.getElementById('gift-person-select').value;
-    status = document.getElementById('gift-status').value || 'idea';
-    type = document.getElementById('gift-type').value || 'given';
+    type = document.getElementById('gift-type').value;
   } else if (giftModalMode === 'people') {
     personId = selectedPersonId;
-    status = 'idea';
+    type = 'idea';
+  } else if (giftModalMode === 'add-given') {
+    personId = selectedPersonId;
     type = 'given';
-  } else if (giftModalMode === 'yearplan-given') {
-    personId = document.getElementById('gift-person-select').value;
-    status = 'idea';
-    type = 'given';
-  } else if (giftModalMode === 'yearplan-received') {
-    personId = document.getElementById('gift-person-select').value;
-    status = 'idea';
+  } else if (giftModalMode === 'add-received') {
+    personId = selectedPersonId;
     type = 'received';
+  } else if (giftModalMode === 'yearplan-given' || giftModalMode === 'yearplan-received') {
+    personId = document.getElementById('gift-person-select').value;
+    type = document.getElementById('gift-type').value;
+  }
+  if (type === 'idea') {
+    priority = document.getElementById('gift-priority').value || 'none';
   }
 
   // Validate required fields for NOT NULL columns
@@ -1422,54 +1820,43 @@ async function handleGiftFormSubmit(e) {
     alert('Gift type is required.');
     return;
   }
-  
-  if (!personId) {
-    alert('Please select a person.');
-    return;
-  }
-  
+
   try {
     if (editingGift) {
       // Update existing gift
-      console.log('[GiftPlan] Updating gift:', editingGift.id);
-      const { error } = await supabaseClient
+      await supabaseClient
         .from('gifts')
         .update({ 
           person_id: personId,
           item, 
           occasion, 
           year, 
-          priority, 
+          type,
           store, 
           cost, 
           notes,
-          status,
-          type
+          priority: type === 'idea' ? priority : null
         })
         .eq('id', editingGift.id);
-      if (error) console.error('[GiftPlan] Error updating gift:', error);
     } else {
-      // Insert new gift and select it
-      console.log('[GiftPlan] Adding new gift');
+      // Insert new gift
       const { data, error } = await supabaseClient
         .from('gifts')
-        .insert([{
+        .insert([{ 
           person_id: personId,
-          year,
-          type,
-          status,
           item,
           occasion,
-          priority,
+          year,
+          type,
           store,
           cost,
-          notes
+          notes,
+          priority: type === 'idea' ? priority : null
         }])
         .select();
       if (error) {
         console.error('[GiftPlan] Error adding gift:', error);
       } else if (data && data[0]) {
-        // Add to local state for immediate display
         if (currentView === 'people') {
           allGiftsForPerson.push(data[0]);
         } else {
@@ -1477,10 +1864,7 @@ async function handleGiftFormSubmit(e) {
         }
       }
     }
-    
     closeGiftModal();
-    
-    // Refresh data
     if (currentView === 'people') {
       await loadGiftsForSelectedPerson();
     } else {

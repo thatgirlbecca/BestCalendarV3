@@ -64,30 +64,39 @@
                     <button id="toggle-archived-btn" class="toggle-archived-btn" onclick="toggleArchivedSection()">Archived ▼</button>
                     <ul id="archived-people-list" class="archived-list" style="display: none;"></ul>
                 </aside>
-                <!-- Gift Plan Column -->
+                <!-- Gift Ideas Column -->
                 <section id="gift-plan-section">
                     <div class="giftplan-condensed-header">
-                        <span id="gift-plan-title">Gift Plan for <span id="selected-person-name">Select a Person</span></span>
+                        <span id="gift-plan-title">💡 Gift Ideas for <span id="selected-person-name">Select a Person</span></span>
                         <label class="condensed-toggle-label">
                             <input type="checkbox" id="show-all-years-toggle" onchange="handleYearFilterChange()">
                             <span>Show All Years</span>
                         </label>
-                        <span id="gift-plan-total">Total: $0.00</span>
-                        <button id="add-gift-btn" title="Add Gift">+</button>
+                        <span id="gift-plan-total">Potential: $0.00</span>
+                        <button id="add-gift-btn" title="Add Gift Idea">+</button>
                     </div>
                     <div id="gift-boxes-container"></div>
                 </section>
-                <!-- Stats & History Column -->
+                <!-- Stats & Given/Received Column -->
                 <section id="stats-section">
-                    <div class="gifts-header">
-                        <span>Stats & History</span>
+                    <div id="stats-container">
+                        <!-- Stats will be rendered here -->
                     </div>
-                    <div id="stats-history-content">
-                        <div id="stats-container">
-                            <!-- Stats will be rendered here -->
+                    <div id="given-received-columns">
+                        <div id="gifts-given-section-people" class="gift-column">
+                            <div class="gift-column-header">
+                                <span>🎁 Given To</span>
+                                <button class="add-gift-column-btn" title="Add Given Gift" onclick="openAddGivenGiftModal()">+</button>
+                            </div>
+                            <div id="gifts-given-list"></div>
+                            <div id="gifts-given-total" class="gift-column-total">Total Spent: $0.00</div>
                         </div>
-                        <div id="history-container">
-                            <!-- History will be rendered here -->
+                        <div id="gifts-received-section-people" class="gift-column">
+                            <div class="gift-column-header">
+                                <span>🎁 Received From</span>
+                                <button class="add-gift-column-btn" title="Add Received Gift" onclick="openAddReceivedGiftModal()">+</button>
+                            </div>
+                            <div id="gifts-received-list"></div>
                         </div>
                     </div>
                 </section>
@@ -95,28 +104,28 @@
 
             <!-- Year Plan View -->
             <div id="yearplan-view" class="view-container" style="display: none;">
-                <div class="yearplan-header">
-                    <label for="yearplan-year-select">Year:</label>
-                    <select id="yearplan-year-select" onchange="handleYearPlanYearChange()"></select>
-                    <span id="yearplan-spent">Spent: $0.00</span>
-                    <span id="yearplan-potential">Potential: $0.00</span>
+                <div class="yearplan-bar-wrapper">
+                  <div class="yearplan-bar">
+                      <div class="yearplan-bar-section">
+                          <label for="yearplan-year-select">Year:</label>
+                          <select id="yearplan-year-select" onchange="handleYearPlanYearChange()"></select>
+                      </div>
+                      <div class="yearplan-bar-section">
+                          <span id="yearplan-spent">Total Spent: $0.00</span>
+                      </div>
+                  </div>
                 </div>
-                <div class="yearplan-columns">
+                <div class="yearplan-2col">
                     <section id="yearplan-given">
                         <div class="section-header">
-                            <span>🎁 Gifts to Give</span>
+                            <span>🎁 Gifts Given</span>
                             <button id="yearplan-add-given" title="Add Gift" onclick="openYearPlanGiftModal('given')">+</button>
                         </div>
                         <div id="yearplan-given-list"></div>
-                        <div class="yearplan-totals">
-                            <span id="yearplan-given-spent">Spent: $0.00</span>
-                            <span class="separator">|</span>
-                            <span id="yearplan-given-potential">Potential: $0.00</span>
-                        </div>
                     </section>
                     <section id="yearplan-received">
                         <div class="section-header">
-                            <span>🎀 Gifts Received</span>
+                            <span>🎁 Gifts Received</span>
                             <button id="yearplan-add-received" title="Add Received Gift" onclick="openYearPlanGiftModal('received')">+</button>
                         </div>
                         <div id="yearplan-received-list"></div>
@@ -140,6 +149,32 @@
                         <button type="button" onclick="closePersonModal()">Cancel</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Person Summary Modal -->
+            <div id="person-summary-modal" class="modal" style="display:none; min-width:340px;">
+                <div id="person-summary-content">
+                    <h2 id="person-summary-title">Person Summary</h2>
+                    <form id="person-summary-form">
+                        <div id="person-summary-info">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div id="person-summary-edit-fields" style="display:none;">
+                            <label for="person-edit-name">Name</label>
+                            <input type="text" id="person-edit-name" required autocomplete="off">
+                            <label for="person-edit-birthday">Birthday (MM/DD)</label>
+                            <input type="text" id="person-edit-birthday" placeholder="MM/DD" autocomplete="off">
+                            <label for="person-edit-notes">Notes</label>
+                            <textarea id="person-edit-notes" rows="4" style="width:100%;"></textarea>
+                        </div>
+                        <div class="modal-actions">
+                            <button id="edit-person-btn" type="button">Edit</button>
+                            <button id="save-person-edit-btn" type="submit" style="display:none;">Save</button>
+                            <button id="cancel-person-edit-btn" type="button" style="display:none;">Cancel</button>
+                            <button type="button" onclick="closePersonSummaryModal()">Close</button>
+                        </div>
+                    </form>
+                </div>
             </div>
             
             <!-- Gift Modal (Add/Edit Given Gift) -->
@@ -197,20 +232,12 @@
                         <option value="">Anytime (No Year)</option>
                     </select>
                     
-                    <div id="gift-status-row" style="display:none;">
-                        <label>Status</label>
-                        <select id="gift-status">
-                            <option value="idea">💡 Idea</option>
-                            <option value="purchased">✔️ Purchased</option>
-                            <option value="rejected">❌ Declined</option>
-                        </select>
-                    </div>
-                    
-                    <div id="gift-type-row" style="display:none;">
+                    <div id="gift-type-row" style="display:block;">
                         <label>Type</label>
                         <select id="gift-type">
-                            <option value="given">Gift to Give</option>
-                            <option value="received">Gift Received</option>
+                            <option value="idea">💡 Gift Idea</option>
+                            <option value="given">🎁 Gift to Give</option>
+                            <option value="received">📦 Gift Received</option>
                         </select>
                     </div>
                     
