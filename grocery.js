@@ -264,39 +264,43 @@ function renderGroceryItems() {
 		return;
 	}
 
-	container.innerHTML = filteredItems.map(item => `
-		<div class="grocery-item" onclick="openDetailsModal('${item.id}')">
-			<input type="checkbox" class="item-checkbox" ${item.checked ? 'checked' : ''} 
-				onclick="event.stopPropagation(); toggleItemCheck('${item.id}')" />
-			<div class="item-content">
-				<div class="item-header">
-					<div class="item-name-priority-row">
-						<span class="item-name">${escapeHtml(item.name)}</span>
-						${item.priority ? `<span class="priority-badge ${item.priority}" style="margin-left:8px;vertical-align:middle;">${item.priority.toUpperCase()}</span>` : ''}
+	container.innerHTML = filteredItems.map(item => {
+		const fromGiftPlan = item.labels && item.labels.split(',').map(l => l.trim()).includes('from-giftplan');
+		return `
+			<div class="grocery-item" onclick="openDetailsModal('${item.id}')">
+				<input type="checkbox" class="item-checkbox" ${item.checked ? 'checked' : ''} 
+					onclick="event.stopPropagation(); toggleItemCheck('${item.id}')" />
+				<div class="item-content">
+					<div class="item-header">
+						<div class="item-name-priority-row">
+							<span class="item-name">${escapeHtml(item.name)}</span>
+							${item.priority ? `<span class="priority-badge ${item.priority}" style="margin-left:8px;vertical-align:middle;">${item.priority.toUpperCase()}</span>` : ''}
+							${fromGiftPlan ? `<span class="from-giftplan-indicator" title="Added from Gift Plan" style="margin-left:8px;vertical-align:middle;">🎁</span>` : ''}
+						</div>
 					</div>
+					<div class="item-type-row">
+						<span class="item-type ${item.type}">${getTypeLabel(item.type)}</span>
+						${item.labels ? `${item.labels.split(',').map(label => `<span class="label-tag">${escapeHtml(label.trim())}</span>`).join('')}` : ''}
+					</div>
+					<div class="item-meta">
+						${item.due_date ? `<span class="item-meta-item">📅 ${formatDate(item.due_date)}</span>` : ''}
+						${item.link ? `<span class="item-meta-item"><a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="item-link" style="color:#FF4F91;font-weight:bold;">${getBaseUrl(item.link)}</a></span>` : ''}
+						${item.store ? `<span class="item-meta-item"><span class="item-store">🏬 ${escapeHtml(item.store)}</span></span>` : ''}
+						${currentView === 'archive' ? `<span class="item-meta-item">✓ ${formatDate(item.archived_at)}</span>` : ''}
+					</div>
+					${item.description ? `<div class="item-description">📝 ${escapeHtml(item.description.substring(0, 100))}${item.description.length > 100 ? '...' : ''}</div>` : ''}
 				</div>
-				<div class="item-type-row">
-					<span class="item-type ${item.type}">${getTypeLabel(item.type)}</span>
-					${item.labels ? `${item.labels.split(',').map(label => `<span class="label-tag">${escapeHtml(label.trim())}</span>`).join('')}` : ''}
+				<div class="item-actions" onclick="event.stopPropagation()">
+					<button class="item-action-btn" onclick="openEditItemForm('${item.id}')" title="Edit">
+						<span class="item-action-icon" aria-label="Edit">✏️</span>
+					</button>
+					<button class="item-action-btn delete" onclick="deleteItem('${item.id}')" title="Delete">
+						<span class="item-action-icon" aria-label="Delete">🗑️</span>
+					</button>
 				</div>
-				<div class="item-meta">
-					${item.due_date ? `<span class="item-meta-item">📅 ${formatDate(item.due_date)}</span>` : ''}
-					${item.link ? `<span class="item-meta-item"><a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="item-link" style="color:#FF4F91;font-weight:bold;">${getBaseUrl(item.link)}</a></span>` : ''}
-					${item.store ? `<span class="item-meta-item"><span class="item-store">🏬 ${escapeHtml(item.store)}</span></span>` : ''}
-					${currentView === 'archive' ? `<span class="item-meta-item">✓ ${formatDate(item.archived_at)}</span>` : ''}
-				</div>
-				${item.description ? `<div class="item-description">📝 ${escapeHtml(item.description.substring(0, 100))}${item.description.length > 100 ? '...' : ''}</div>` : ''}
 			</div>
-			<div class="item-actions" onclick="event.stopPropagation()">
-				<button class="item-action-btn" onclick="openEditItemForm('${item.id}')" title="Edit">
-					<span class="item-action-icon" aria-label="Edit">✏️</span>
-				</button>
-				<button class="item-action-btn delete" onclick="deleteItem('${item.id}')" title="Delete">
-					<span class="item-action-icon" aria-label="Delete">🗑️</span>
-				</button>
-			</div>
-		</div>
-	`).join('');
+		`;
+	}).join('');
 
 // Move item from Wishlist to Active (global scope)
 async function moveToActive(itemId) {
@@ -593,9 +597,10 @@ function openDetailsModal(itemId) {
 
 	const detailsBody = document.getElementById('details-body');
 	
+	const fromGiftPlan = item.labels && item.labels.split(',').map(l => l.trim()).includes('from-giftplan');
 	detailsBody.innerHTML = `
 		<div class="details-header">
-			<div class="details-title">${escapeHtml(item.name)}</div>
+			<div class="details-title">${escapeHtml(item.name)}${fromGiftPlan ? ' <span class="from-giftplan-indicator" title="Added from Gift Plan">🎁</span>' : ''}</div>
 			<div class="details-actions">
 				${!item.checked ? `<label class="details-checkbox-label"><input type="checkbox" class="item-checkbox" onchange="toggleItemCheck('${item.id}'); closeDetailsModal();"></label>` : ''}
 				<button class="item-action-btn" onclick="closeDetailsModal(); openEditItemForm('${item.id}');" title="Edit"><span class="item-action-icon" aria-label="Edit">✏️</span></button>

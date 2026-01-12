@@ -1,3 +1,67 @@
+@media (max-width: 768px) {
+  .header-buttons {
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100%;
+    gap: 16px;
+    display: flex !important;
+  }
+  .header-buttons .nav-dropdown,
+  .header-buttons .logout-button {
+    margin: 0 auto;
+    float: none;
+    display: inline-flex;
+  }
+}
+@media (max-width: 768px) {
+  .header-logo {
+    display: none !important;
+  }
+}
+/* Justify year dropdown to right in received from column item boxes */
+.gift-box.received .gift-box-header select {
+  margin-left: auto;
+}
+/* Unified year dropdown design for all contexts */
+.gift-box select,
+.gift-box-actions select,
+#year-select,
+.year-btn,
+.gift-column .gift-box select {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 6px 12px;
+  font-size: 1em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.gift-box select:hover,
+.gift-box-actions select:hover,
+#year-select:hover,
+.year-btn:hover,
+.gift-column .gift-box select:hover {
+  border-color: #777;
+}
+.gift-box select:focus,
+.gift-box-actions select:focus,
+#year-select:focus,
+.year-btn:focus,
+.gift-column .gift-box select:focus {
+  outline: none;
+  border-color: #FF4F91;
+}
+.year-section-content.collapsed {
+  display: none;
+}
+.year-toggle {
+  color: #ffaac9;
+  font-size: 1.1em;
+  margin-right: 6px;
+  cursor: pointer;
+  user-select: none;
+}
 .year-section-header {
   color: #ffaac9;
   font-weight: 600;
@@ -80,7 +144,13 @@
 #total-cost-all {
   color: #ffaac9;
   font-weight: 600;
-  font-size: 1.1em;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    transition: background 0.2s;
+    font-size: 0.9em;
+  gap: 0;
   margin-left: 10px;
 }
 .header-buttons {
@@ -179,24 +249,34 @@
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 56px);
+  max-height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* People list container - scrollable area */
+#people-list-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 0 12px 0;
-  color: #ffaac9;
+  color: #fff;
   font-weight: 600;
   font-size: 1.1em;
   border-bottom: 1px solid #333;
   margin-bottom: 8px;
 }
+
 #people-list {
   list-style: none;
   margin: 0;
-  padding: 0 0 12px 0;
-  flex: 1;
-  overflow-y: auto;
+  padding: 0 0 8px 0;
 }
 #people-list li {
   padding: 12px 10px;
@@ -223,33 +303,64 @@
 }
 
 /* ===== ARCHIVED PEOPLE ===== */
+#archived-section {
+  border-top: 1px solid #333;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
 .toggle-archived-btn {
-  background: #2a2a2a;
+  background: #1a1a1a;
   color: #888;
-  border: 1px solid #444;
+  border: 1.5px solid #333;
   border-radius: 4px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   cursor: pointer;
-  font-size: 0.9em;
-  width: 100%;
-  text-align: left;
-  margin-top: 8px;
-  transition: background 0.2s, color 0.2s;
+  font-size: 0.95em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, color 0.15s, border 0.15s;
 }
+
 .toggle-archived-btn:hover {
-  background: #333;
+  background: #23272e;
   color: #aaa;
+  border: 1.5px solid #555;
 }
+
 .toggle-archived-btn.expanded {
-  background: #333;
+  background: #23272e;
   color: #ffaac9;
+  border: 1.5px solid #FF4F91;
+}
+
+.archived-toggle-arrow {
+  font-size: 0.75em;
+  transition: transform 0.2s;
+  color: #666;
+}
+
+.toggle-archived-btn.expanded .archived-toggle-arrow {
+  transform: rotate(90deg);
+  color: #ffaac9;
+}
+
+.archived-toggle-label {
+  flex: 1;
+}
+
+.archived-count {
+  font-size: 0.8em;
+  color: #666;
+  background: #2a2a2a;
+  padding: 2px 6px;
+  border-radius: 10px;
 }
 #archived-people-list {
   list-style: none;
   margin: 0;
   padding: 8px 0 0 0;
-  overflow-y: auto;
-  max-height: 200px;
 }
 #archived-people-list li {
   padding: 10px 10px;
@@ -653,7 +764,9 @@
 .year-section-count {
   color: #888;
   font-size: 0.85em;
-  font-weight: normal;
+    font-size: 1.1em;
+    margin-right: 10px;
+    flex: 0 0 auto;
 }
 
 /* ===== GIFT BOXES ===== */
@@ -684,10 +797,11 @@
 .gift-box-header {
   display: flex;
   align-items: center;
-    gap: 10px;
-    margin-bottom: 0;
-    padding: 0;
-    flex: none;
+  gap: 10px;
+  margin-bottom: 0;
+  padding: 0;
+  flex: none;
+  justify-content: space-between;
 }
 .gift-box-header .gift-status {
   cursor: pointer;
@@ -729,6 +843,7 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 .gift-box-actions .year-btn {
   background: #333;
@@ -1345,7 +1460,6 @@
   color: #888;
   font-size: 0.8em;
 }
-
 .history-year-content {
   padding: 6px 8px;
 }
@@ -1364,6 +1478,7 @@
   gap: 8px;
   flex-wrap: nowrap;
   margin-left: auto;
+}
 
 .history-item:last-child {
   border-bottom: none;
@@ -1428,4 +1543,201 @@
   flex-direction: column;
   height: calc(100vh - 56px);
   min-height: 0;
+}
+
+/* ===== MOBILE STYLES ===== */
+@media (max-width: 768px) {
+  /* Hide desktop view tabs in header */
+  .view-tabs {
+    display: none !important;
+  }
+  
+  /* Adjust header for mobile */
+  .giftplan-header-flex {
+    padding: 8px;
+  }
+  .header-logo {
+    font-size: 1.2em;
+  }
+  
+  /* Bottom navigation tabs */
+  .mobile-bottom-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #111;
+    border-top: 2px solid #333;
+    z-index: 1000;
+    padding: 0;
+  }
+  .mobile-bottom-tabs .mobile-tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: #1a1a1a;
+    border: none;
+    color: #888;
+    font-size: 0.9em;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .mobile-bottom-tabs .mobile-tab.active {
+    background: #222;
+    color: #FF4F91;
+  }
+  .mobile-bottom-tabs .mobile-tab:hover {
+    background: #2a2a2a;
+  }
+  .mobile-tab-icon {
+    font-size: 1.3em;
+  }
+  .mobile-tab-label {
+    font-size: 0.75em;
+  }
+  
+  /* People View mobile layout */
+  #people-view.giftplan-3col {
+    flex-direction: column;
+    height: calc(100vh - 56px - 60px); /* Account for header and bottom tabs */
+    padding-bottom: 60px;
+  }
+  
+  /* Mobile sub-views - show/hide based on state */
+  #people-view.mobile-show-people #people-sidebar {
+    display: flex !important;
+    width: 100%;
+    max-height: none;
+    min-height: calc(100vh - 56px - 60px);
+    border-right: none;
+    border-bottom: none;
+  }
+  #people-view.mobile-show-people #gift-plan-section,
+  #people-view.mobile-show-people #stats-section {
+    display: none !important;
+  }
+  
+  #people-view.mobile-show-ideas #people-sidebar {
+    display: none !important;
+  }
+  #people-view.mobile-show-ideas #gift-plan-section {
+    display: flex !important;
+    width: 100%;
+    flex: 1;
+    border-right: none;
+  }
+  #people-view.mobile-show-ideas #stats-section {
+    display: none !important;
+  }
+  
+  #people-view.mobile-show-given-received #people-sidebar,
+  #people-view.mobile-show-given-received #gift-plan-section {
+    display: none !important;
+  }
+  #people-view.mobile-show-given-received #stats-section {
+    display: flex !important;
+    width: 100%;
+    flex: 1;
+  }
+  
+  /* Mobile back button */
+  .mobile-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-right: auto;
+  }
+  .mobile-back-btn:hover {
+    background: #444;
+  }
+  
+  /* Mobile view toggle button (ideas vs given/received) */
+  .mobile-view-toggle {
+    display: flex;
+    background: #333;
+    color: #ffaac9;
+    border: 1px solid #555;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    white-space: nowrap;
+  }
+  .mobile-view-toggle:hover {
+    background: #444;
+    border-color: #FF4F91;
+  }
+  
+  /* Mobile condensed header adjustments */
+  .giftplan-condensed-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .giftplan-condensed-header #gift-plan-title {
+    width: 100%;
+    font-size: 0.95em;
+  }
+  
+  /* Stats section mobile layout */
+  #stats-section {
+    min-height: calc(100vh - 56px - 60px);
+  }
+  #given-received-columns {
+    flex-direction: column;
+  }
+  .gift-column:first-child {
+    border-right: none;
+    border-bottom: 1px solid #333;
+  }
+  
+  /* Year Plan View mobile */
+  #yearplan-view {
+    height: calc(100vh - 56px - 60px);
+    padding-bottom: 60px;
+  }
+  .yearplan-2col {
+    flex-direction: column;
+    padding: 12px;
+    gap: 12px;
+  }
+  #yearplan-given, #yearplan-received {
+    margin: 0;
+    min-height: 300px;
+  }
+  
+  /* Hide on desktop */
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
+/* Hide mobile elements on desktop */
+@media (min-width: 769px) {
+  .mobile-bottom-tabs,
+  .mobile-back-btn,
+  .mobile-view-toggle,
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Mobile stats header styling */
+.mobile-stats-header {
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  gap: 10px;
+  align-items: center;
 }

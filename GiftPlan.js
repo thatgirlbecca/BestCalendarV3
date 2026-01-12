@@ -1,3 +1,200 @@
+// --- Gift Action Modal ---
+let currentGiftForAction = null;
+
+function ensureGiftActionModal() {
+  if (document.getElementById('gift-action-modal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'gift-action-modal';
+  modal.className = 'modal';
+  modal.style.background = 'rgba(26,26,26,0.92)';
+  modal.innerHTML = `
+    <div class="modal-content gift-action-modal-content" style="background:#1a1a1a;min-width:320px;max-width:95vw;padding:24px 20px 18px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.18);border-radius:12px;color:#f2f2f2;">
+      <span id="close-gift-action-modal" class="close" style="font-size:1.7em;position:absolute;top:10px;right:18px;cursor:pointer;color:#f2f2f2;">&times;</span>
+      <div id="gift-action-modal-title" class="modal-title" style="font-size:1.2em;font-weight:600;margin-bottom:18px;color:#f2f2f2;"></div>
+      <div id="gift-action-modal-body" style="display:flex;flex-direction:column;align-items:center;gap:18px;">
+        <div id="gift-action-notes-section" style="width:100%;margin-bottom:12px;">
+          <label for="gift-action-notes-text" style="font-size:0.98em;font-weight:500;display:block;margin-bottom:4px;color:#f2f2f2;">Notes</label>
+          <p id="gift-action-notes-text" style="margin:0;padding:7px 10px;border-radius:6px;background:#232323;color:#f2f2f2;font-size:1em;box-sizing:border-box;min-height:38px;white-space:pre-line;"></p>
+          <button id="gift-action-save-notes-btn" style="margin-top:7px;padding:6px 18px;border-radius:6px;background:#2d7cff;color:#fff;border:none;font-size:1em;cursor:pointer;float:right;display:none;">💾 Save</button>
+        </div>
+        <div style="display:flex;gap:18px;justify-content:center;width:100%;margin-top:8px;">
+          <button id="gift-action-edit-btn" title="Edit Notes" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">✏️</button>
+          <button id="gift-action-delete-btn" title="Delete Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">🗑️</button>
+          <button id="gift-action-copy-grocery-btn" title="Copy to Groceries" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">🛒</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  // Close modal handler
+  document.getElementById('close-gift-action-modal').onclick = closeGiftActionModal;
+  // Clicking outside modal closes it
+  modal.onclick = function(e) {
+    if (e.target === modal) closeGiftActionModal();
+  };
+}
+
+function openGiftActionModal(gift) {
+  ensureGiftActionModal();
+  currentGiftForAction = gift;
+  document.getElementById('gift-action-modal-title').textContent = gift.item || '(No item)';
+  document.getElementById('gift-action-modal').style.display = 'block';
+  // Show notes and set value
+  const notesTextarea = document.getElementById('gift-action-notes-text');
+  const saveBtn = document.getElementById('gift-action-save-notes-btn');
+  notesTextarea.value = gift.notes || '';
+  notesTextarea.readOnly = true;
+  saveBtn.style.display = 'none';
+
+  // Edit button opens full edit gift modal
+  document.getElementById('gift-action-edit-btn').onclick = function() {
+    closeGiftActionModal();
+    openEditGiftModal(gift);
+  };
+  document.getElementById('gift-action-delete-btn').onclick = function() {
+    closeGiftActionModal();
+    deleteGift(gift.id);
+  };
+  document.getElementById('gift-action-copy-grocery-btn').onclick = async function() {
+    closeGiftActionModal();
+    await copyGiftToGrocery(gift);
+  };
+  saveBtn.onclick = async function() {
+    const notes = notesTextarea.value;
+    await updateGiftNotes(gift.id, notes);
+    notesTextarea.readOnly = true;
+    saveBtn.style.display = 'none';
+    closeGiftActionModal();
+    // Update local state and re-render
+    if (gift) gift.notes = notes;
+    renderGiftIdeas();
+    renderGiftsGiven();
+    renderGiftsReceived();
+  };
+}
+
+function closeGiftActionModal() {
+  const modal = document.getElementById('gift-action-modal');
+  if (modal) modal.style.display = 'none';
+  currentGiftForAction = null;
+}
+
+async function updateGiftNotes(giftId, notes) {
+  try {
+    const { error } = await supabaseClient
+      .from('gifts')
+      .update({ notes })
+      .eq('id', giftId);
+    if (error) {
+      alert('Failed to update notes.');
+      console.error('[GiftPlan] Error updating notes:', error);
+    }
+  } catch (err) {
+    alert('Failed to update notes.');
+    console.error('[GiftPlan] Exception updating notes:', err);
+  }
+}
+
+// Expose for use in createGiftBox/createGiftColumnBox
+window.openGiftActionModal = openGiftActionModal;
+
+// Do not auto-show or auto-create the modal on DOMContentLoaded. Only create/show when needed.
+
+// --- Mobile State ---
+let mobileSubView = 'people'; // 'people', 'ideas', 'given-received' (for People View sub-navigation)
+
+// --- Mobile Detection ---
+function isMobileView() {
+  return window.innerWidth <= 768;
+}
+
+// --- Mobile Bottom Tabs ---
+function switchMobileTab(view) {
+  // Update bottom tab styling
+  document.querySelectorAll('.mobile-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
+  
+  // Switch to the main view
+  switchView(view);
+  
+  // Reset mobile sub-view when switching tabs
+  if (view === 'people') {
+    mobileSubView = selectedPersonId ? 'ideas' : 'people';
+  }
+  updateMobilePeopleViewLayout();
+}
+window.switchMobileTab = switchMobileTab;
+
+// --- Mobile People View Sub-Navigation ---
+function mobileBackToPeople() {
+  mobileSubView = 'people';
+  updateMobilePeopleViewLayout();
+}
+window.mobileBackToPeople = mobileBackToPeople;
+
+function mobileToggleToGivenReceived() {
+  mobileSubView = 'given-received';
+  updateMobilePeopleViewLayout();
+}
+window.mobileToggleToGivenReceived = mobileToggleToGivenReceived;
+
+function mobileToggleToIdeas() {
+  mobileSubView = 'ideas';
+  updateMobilePeopleViewLayout();
+}
+window.mobileToggleToIdeas = mobileToggleToIdeas;
+
+// --- Update Mobile People View Layout ---
+function updateMobilePeopleViewLayout() {
+  if (!isMobileView()) {
+    // Desktop: remove mobile classes and show bottom tabs
+    const peopleView = document.getElementById('people-view');
+    if (peopleView) {
+      peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received');
+    }
+    const bottomTabs = document.querySelector('.mobile-bottom-tabs');
+    if (bottomTabs) bottomTabs.style.display = 'none';
+    const mobileStatsHeader = document.querySelector('.mobile-stats-header');
+    if (mobileStatsHeader) mobileStatsHeader.style.display = 'none';
+    return;
+  }
+  
+  // Mobile: show bottom tabs
+  const bottomTabs = document.querySelector('.mobile-bottom-tabs');
+  if (bottomTabs) bottomTabs.style.display = 'flex';
+  
+  // Update bottom tab active state
+  document.querySelectorAll('.mobile-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === currentView);
+  });
+  
+  const peopleView = document.getElementById('people-view');
+  if (!peopleView) return;
+  
+  // Remove all mobile sub-view classes
+  peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received');
+  
+  // Apply the appropriate class based on mobileSubView
+  if (currentView === 'people') {
+    peopleView.classList.add(`mobile-show-${mobileSubView}`);
+    
+    // Show/hide mobile stats header
+    const mobileStatsHeader = document.querySelector('.mobile-stats-header');
+    if (mobileStatsHeader) {
+      mobileStatsHeader.style.display = mobileSubView === 'given-received' ? 'flex' : 'none';
+    }
+  }
+}
+
+// --- Update Mobile Selected State (called when person is selected) ---
+function updateMobilePeopleSelectedState() {
+  if (isMobileView() && currentView === 'people' && selectedPersonId) {
+    // When a person is selected on mobile, show their ideas
+    mobileSubView = 'ideas';
+    updateMobilePeopleViewLayout();
+  }
+}
 // GiftPlan.js - Full backend logic for Gift Plan page (Part 3 - People View + Year Plan View + Stats & History)
 // Uses supabaseClient (from supabase.js)
 
@@ -60,8 +257,13 @@ function switchView(view) {
   currentView = view;
   localStorage.setItem('giftplan_currentView', view);
   
-  // Update tab styling
+  // Update tab styling (desktop)
   document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
+  
+  // Update mobile tab styling
+  document.querySelectorAll('.mobile-tab').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.view === view);
   });
   
@@ -73,6 +275,9 @@ function switchView(view) {
   if (view === 'yearplan') {
     loadYearPlanData();
   }
+  
+  // Update mobile layout
+  updateMobilePeopleViewLayout();
   
   console.log('[GiftPlan] Switched to view:', view);
 }
@@ -86,17 +291,23 @@ function toggleArchivedSection() {
   const list = document.getElementById('archived-people-list');
   
   if (showArchivedPeople) {
-    btn.textContent = 'Archived ▲';
     btn.classList.add('expanded');
     list.style.display = 'block';
     renderArchivedPeopleList();
   } else {
-    btn.textContent = 'Archived ▼';
     btn.classList.remove('expanded');
     list.style.display = 'none';
   }
 }
 window.toggleArchivedSection = toggleArchivedSection;
+
+// --- Update Archived Count Badge ---
+function updateArchivedCount() {
+  const countEl = document.getElementById('archived-count');
+  if (countEl) {
+    countEl.textContent = archivedPeople.length > 0 ? archivedPeople.length : '';
+  }
+}
 
 // --- Year Filter Toggle (People View) ---
 function handleYearFilterChange() {
@@ -285,6 +496,8 @@ async function loadData() {
   archivedPeople = people.archived;
   
   renderPeopleList();
+  updateArchivedCount();
+  updateMobilePeopleSelectedState();
   
   if (showArchivedPeople) {
     renderArchivedPeopleList();
@@ -355,7 +568,7 @@ function renderPeopleList() {
     ul.appendChild(emptyLi);
     return;
   }
-  
+
   allPeople.forEach(person => {
     const li = document.createElement('li');
     li.className = person.id === selectedPersonId ? 'selected' : '';
@@ -363,26 +576,28 @@ function renderPeopleList() {
       if (e.target.closest('.person-actions')) return;
       selectPerson(person.id);
     };
-    
+
     const nameSpan = document.createElement('span');
     nameSpan.className = 'person-name';
     nameSpan.textContent = person.name;
     nameSpan.title = person.birthday ? `Birthday: ${person.birthday}` : '';
     li.appendChild(nameSpan);
-    
+
     const actions = document.createElement('div');
     actions.className = 'person-actions';
-    
+
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-btn';
     editBtn.innerHTML = '&#8942;'; // vertical ellipsis (triple dot menu)
     editBtn.title = 'Person Menu';
     editBtn.onclick = (e) => { e.stopPropagation(); openPersonSummaryModal(person); };
     actions.appendChild(editBtn);
-    
+
     li.appendChild(actions);
     ul.appendChild(li);
   });
+  updateMobilePeopleViewLayout();
+  updateMobilePeopleSelectedState();
 }
 
 function renderArchivedPeopleList() {
@@ -405,29 +620,22 @@ function renderArchivedPeopleList() {
       if (e.target.closest('.person-actions')) return;
       selectPerson(person.id);
     };
-    
+
     const nameSpan = document.createElement('span');
     nameSpan.className = 'person-name';
     nameSpan.innerHTML = `${person.name} <span class="person-archived-label">(archived)</span>`;
     li.appendChild(nameSpan);
-    
+
     const actions = document.createElement('div');
     actions.className = 'person-actions';
-    
-    const unarchiveBtn = document.createElement('button');
-    unarchiveBtn.className = 'archive-btn';
-    unarchiveBtn.textContent = '📤';
-    unarchiveBtn.title = 'Unarchive Person';
-    unarchiveBtn.onclick = (e) => { e.stopPropagation(); toggleArchive(person.id); };
-    actions.appendChild(unarchiveBtn);
-    
-    const delBtn = document.createElement('button');
-    delBtn.className = 'delete-btn';
-    delBtn.textContent = '🗑️';
-    delBtn.title = 'Delete Person';
-    delBtn.onclick = (e) => { e.stopPropagation(); deletePerson(person.id); };
-    actions.appendChild(delBtn);
-    
+
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'edit-btn';
+    menuBtn.innerHTML = '&#8942;'; // vertical ellipsis (triple dot menu)
+    menuBtn.title = 'Person Menu';
+    menuBtn.onclick = (e) => { e.stopPropagation(); openPersonSummaryModal(person); };
+    actions.appendChild(menuBtn);
+
     li.appendChild(actions);
     ul.appendChild(li);
   });
@@ -500,7 +708,7 @@ function renderGiftIdeas() {
   const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
   years.forEach(year => {
     const gifts = grouped.byYear[year];
-    const section = createYearSection(`📅 ${year} IDEAS`, gifts);
+    const section = createYearSection(`📅 ${year} Ideas`, gifts);
     container.appendChild(section);
   });
 }
@@ -508,56 +716,135 @@ function renderGiftIdeas() {
 function createYearSection(title, gifts) {
   const section = document.createElement('div');
   section.className = 'year-section';
-  
+
   const header = document.createElement('div');
   header.className = 'year-section-header';
-  header.innerHTML = `${title} <span class="year-section-count">(${gifts.length})</span>`;
+  header.innerHTML = `<span class="year-toggle">▼</span> ${title} <span class="year-section-count">(${gifts.length})</span>`;
   section.appendChild(header);
-  
+
+  const content = document.createElement('div');
+  content.className = 'year-section-content';
   gifts.forEach(gift => {
     const box = createGiftBox(gift, false);
-    section.appendChild(box);
+    content.appendChild(box);
   });
-  
+  section.appendChild(content);
+
+  header.addEventListener('click', () => {
+    const isCollapsed = content.classList.toggle('collapsed');
+    const toggle = header.querySelector('.year-toggle');
+    if (toggle) toggle.textContent = isCollapsed ? '▶' : '▼';
+  });
+
   return section;
 }
 
 function createGiftBox(gift, showPersonName = false, isReceived = false) {
   const box = document.createElement('div');
   box.className = `gift-box priority-${gift.priority || 'none'}${isReceived ? ' received' : ''}`;
+  box.className = `gift-box priority-${gift.priority || 'none'}${isReceived ? ' received' : ''}`;
   
-  // Header
+  // Header with title and actions on the same line
   const header = document.createElement('div');
   header.className = 'gift-box-header';
-  
-  // No status icon or cycling in new system
-  
+
+
   const itemSpan = document.createElement('strong');
   itemSpan.textContent = gift.item || '(No item)';
   header.appendChild(itemSpan);
-  
-  box.appendChild(header);
-  
-  // Body
-  const body = document.createElement('div');
-  body.className = 'gift-box-body';
-  
-  // Cost + Store (only for given gifts)
-  if (!isReceived && (gift.store || gift.cost)) {
-    const storeCost = document.createElement('div');
-    storeCost.className = 'gift-box-store-cost';
-    const parts = [];
-    if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
-    if (gift.store) parts.push(gift.store);
-    storeCost.innerHTML = parts.join(' - ');
-    body.appendChild(storeCost);
+
+  // Occasion label (if set)
+  if (gift.occasion) {
+    const occasionSpan = document.createElement('span');
+    occasionSpan.className = 'gift-occasion';
+    occasionSpan.textContent = ` (${capitalizeOccasion(gift.occasion)})`;
+    header.appendChild(occasionSpan);
   }
-  
-  // Actions row
+
+  // Actions row (moved to header)
   const actions = document.createElement('div');
   actions.className = 'gift-box-actions';
-  
+
   if (!isReceived) {
+        // Copy to Grocery button
+        const copyToGroceryBtn = document.createElement('button');
+        copyToGroceryBtn.className = 'copy-to-grocery-btn';
+        copyToGroceryBtn.title = 'Copy to Grocery List';
+        copyToGroceryBtn.innerHTML = '🛒';
+        copyToGroceryBtn.onclick = async (e) => {
+          e.stopPropagation();
+          await copyGiftToGrocery(gift);
+        };
+        actions.appendChild(copyToGroceryBtn);
+        // Indicator if already in groceries (async)
+        const groceryIndicator = document.createElement('span');
+        groceryIndicator.className = 'gift-grocery-indicator';
+        groceryIndicator.style.display = 'none';
+        actions.appendChild(groceryIndicator);
+        isGiftInGroceries(gift).then(inGroceries => {
+          if (inGroceries) {
+            groceryIndicator.title = 'Also in Grocery List';
+            groceryIndicator.innerHTML = '🛒✔️';
+            groceryIndicator.style.display = '';
+          } else {
+            groceryIndicator.style.display = 'none';
+          }
+        });
+    // Helper: Copy gift to grocery list (Active section)
+    async function copyGiftToGrocery(gift) {
+      // Get current user
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) {
+        alert('You must be logged in to copy to groceries.');
+        return;
+      }
+      // Insert grocery item
+      // Only allow valid priorities: 'high', 'medium', 'low', or null
+      let validPriority = null;
+      if (gift.priority === 'high' || gift.priority === 'medium' || gift.priority === 'low') {
+        validPriority = gift.priority;
+      }
+      const itemData = {
+        name: gift.item,
+        type: 'food', // Default type, or map from gift if desired
+        description: gift.notes || null,
+        priority: validPriority,
+        labels: 'from-giftplan',
+        due_date: null,
+        link: null,
+        store: gift.store || null,
+        checked: false,
+        section: 'Active',
+        user_id: user.id
+      };
+      // Prevent duplicate
+      if (await isGiftInGroceries(gift)) {
+        alert('This gift is already in your grocery list.');
+        return;
+      }
+      const { error } = await supabaseClient
+        .from('grocery_items')
+        .insert([itemData]);
+      if (error) {
+        console.error('Supabase insert error:', error);
+        alert('Failed to copy to grocery list. ' + (error.message || error));
+        return;
+      }
+      alert('Copied to grocery list!');
+    }
+
+    // Helper: Check if gift is already in groceries (by name, case-insensitive)
+    async function isGiftInGroceries(gift) {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return false;
+      const { data, error } = await supabaseClient
+        .from('grocery_items')
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('name', gift.item);
+      if (error) return false;
+      return data && data.length > 0;
+    }
     // Year dropdown
     const now = new Date().getFullYear();
     const years = [now - 1, now, now + 1, now + 2];
@@ -566,13 +853,13 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
     yearSelect.title = 'Change Year';
     const placeholderOption = document.createElement('option');
     placeholderOption.value = '';
-    placeholderOption.textContent = '[Assign to Year]';
+    placeholderOption.textContent = 'Any';
     if (!gift.year) placeholderOption.selected = true;
     yearSelect.appendChild(placeholderOption);
     years.forEach(y => {
       const opt = document.createElement('option');
       opt.value = y;
-      opt.textContent = gift.occasion ? `[${y}-${capitalizeOccasion(gift.occasion)}]` : `[${y}]`;
+      opt.textContent = y;
       if (gift.year == y) opt.selected = true;
       yearSelect.appendChild(opt);
     });
@@ -594,35 +881,71 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
       }
     };
     actions.appendChild(yearSelect);
+
+    // Promote to Given button (only for idea-type gifts)
+    if (gift.type === 'idea') {
+      const promoteBtn = document.createElement('button');
+      promoteBtn.className = 'promote-btn';
+      promoteBtn.innerHTML = '🎁';
+      promoteBtn.title = 'Convert to Given Gift';
+      promoteBtn.onclick = () => promoteIdeaToGiven(gift.id);
+      actions.appendChild(promoteBtn);
+    }
+
+    // Triple dot menu button
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'gift-menu-btn';
+    menuBtn.innerHTML = '&#8942;'; // vertical ellipsis
+    menuBtn.title = 'Gift Actions';
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      openGiftActionModal(gift);
+    };
+    actions.appendChild(menuBtn);
+  }
+
+  header.appendChild(actions);
+  box.appendChild(header);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'gift-box-body';
+
+  // Cost + Store (only for given gifts)
+  if (!isReceived && (gift.store || gift.cost)) {
+    const storeCost = document.createElement('div');
+    storeCost.className = 'gift-box-store-cost';
+    const parts = [];
+    if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
+    if (gift.store) {
+      let storeText = gift.store;
+      let truncated = false;
+      if (window.innerWidth <= 768 && storeText.length > 16) {
+        storeText = storeText.slice(0, 14) + '…';
+        truncated = true;
+      }
+      const storeSpan = document.createElement('span');
+      storeSpan.className = 'gift-store';
+      storeSpan.textContent = storeText;
+      if (truncated) {
+        storeSpan.title = gift.store;
+        storeSpan.style.cursor = 'pointer';
+        storeSpan.onclick = function(e) {
+          e.stopPropagation();
+          if (storeSpan.textContent.endsWith('…')) {
+            storeSpan.textContent = gift.store;
+          } else {
+            storeSpan.textContent = storeText;
+          }
+        };
+      }
+      parts.push(storeSpan.outerHTML);
+    }
+    storeCost.innerHTML = parts.join(' - ');
+    body.appendChild(storeCost);
   }
   
-  // Promote to Given button (only for idea-type gifts)
-  if (gift.type === 'idea') {
-    const promoteBtn = document.createElement('button');
-    promoteBtn.className = 'promote-btn';
-    promoteBtn.textContent = '→ Given';
-    promoteBtn.title = 'Convert to Given Gift';
-    promoteBtn.onclick = () => promoteIdeaToGiven(gift.id);
-    actions.appendChild(promoteBtn);
-  }
-  
-  // Edit button
-  const editBtn = document.createElement('button');
-  editBtn.className = 'edit-btn';
-  editBtn.textContent = '✏️';
-  editBtn.title = 'Edit Gift';
-  editBtn.onclick = () => openEditGiftModal(gift);
-  actions.appendChild(editBtn);
-  
-  // Delete button
-  const delBtn = document.createElement('button');
-  delBtn.className = 'delete-btn';
-  delBtn.textContent = '🗑️';
-  delBtn.title = 'Delete Gift';
-  delBtn.onclick = () => deleteGift(gift.id);
-  actions.appendChild(delBtn);
-  
-  body.appendChild(actions);
+  // (actions already handled above)
   
   // ...priority selector removed from gift box view...
   
@@ -630,7 +953,25 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   if (gift.notes) {
     const notes = document.createElement('div');
     notes.className = 'gift-box-notes';
-    notes.textContent = gift.notes;
+    let notesText = gift.notes;
+    let truncated = false;
+    if (window.innerWidth <= 768 && notesText.length > 20) {
+      notesText = notesText.slice(0, 18) + '…';
+      truncated = true;
+    }
+    notes.textContent = notesText;
+    if (truncated) {
+      notes.title = gift.notes;
+      notes.style.cursor = 'pointer';
+      notes.onclick = function(e) {
+        e.stopPropagation();
+        if (notes.textContent.endsWith('…')) {
+          notes.textContent = gift.notes;
+        } else {
+          notes.textContent = notesText;
+        }
+      };
+    }
     body.appendChild(notes);
   }
   
@@ -713,7 +1054,7 @@ function renderYearPlanColumn(container, groupedByPerson, isReceived) {
     group.appendChild(header);
     
     // Gift boxes
-    gifts.forEach(gift => {
+    gifts.forEach(async gift => {
       const box = createGiftBox(gift, true, isReceived);
       group.appendChild(box);
     });
@@ -729,8 +1070,13 @@ function createPersonLink(personId, personName, isArchived) {
   link.className = 'person-link';
   link.onclick = (e) => {
     e.preventDefault();
-    switchView('people');
-    selectPerson(personId);
+    if (window.innerWidth <= 768) {
+      switchView('people');
+      setTimeout(() => selectPerson(personId), 10);
+    } else {
+      switchView('people');
+      selectPerson(personId);
+    }
   };
   return link;
 }
@@ -764,6 +1110,8 @@ function selectPerson(personId) {
   }
   
   loadGiftsForSelectedPerson();
+  updateMobilePeopleViewLayout();
+  updateMobilePeopleSelectedState();
 }
 
 async function loadGiftsForSelectedPerson() {
@@ -776,6 +1124,9 @@ async function loadGiftsForSelectedPerson() {
   renderGiftsGiven();
   renderGiftsReceived();
   renderStatsOnly();
+  renderHistory(allGiftsForPerson);
+  updateMobilePeopleViewLayout();
+  updateMobilePeopleSelectedState();
 }
 
 // --- Stats & History Functions ---
@@ -984,19 +1335,19 @@ function renderGiftsGiven() {
   
   // Group by year
   const grouped = groupGiftsByYear(givenGifts);
-  
   // Render anytime gifts first
   if (grouped.anytime.length > 0) {
-    const section = createGiftColumnSection('No Year', grouped.anytime, false, true);
+    const section = createYearSection('💡 IDEAS (ANYTIME)', grouped.anytime);
     container.appendChild(section);
   }
   // Render by year (descending)
   const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
   years.forEach(year => {
     const gifts = grouped.byYear[year];
-    const section = createGiftColumnSection(year, gifts, false, false);
+    const section = createYearSection(`📅 ${year} Gifts`, gifts);
     container.appendChild(section);
   });
+  // (Removed duplicate/erroneous block)
 }
 
 function renderGiftsReceived() {
@@ -1056,7 +1407,7 @@ function createGiftColumnSection(title, gifts, isReceived, isAnytime) {
   const isCollapsed = collapsedYears.has(yearKey);
   const header = document.createElement('div');
   header.className = 'year-section-header';
-  header.innerHTML = `📅 ${title} <span class="year-section-count">(${gifts.length})</span> <span class="year-toggle">${isCollapsed ? '▶' : '▼'}</span>`;
+  header.innerHTML = `<span class="year-toggle">${isCollapsed ? '▶' : '▼'}</span> 📅 ${title} <span class="year-section-count">(${gifts.length})</span>`;
   header.style.cursor = 'pointer';
   header.onclick = function() {
     if (collapsedYears.has(yearKey)) {
@@ -1087,33 +1438,22 @@ function createGiftColumnBox(gift, isReceived) {
   const box = document.createElement('div');
   box.className = `gift-box${isReceived ? ' received' : ''}`;
   
-  // Header with item name
+  // Header with item name, year dropdown, and menu button all on one line
   const header = document.createElement('div');
   header.className = 'gift-box-header';
+
   const itemSpan = document.createElement('strong');
   itemSpan.textContent = gift.item || '(No item)';
   header.appendChild(itemSpan);
-  box.appendChild(header);
-  
-  // Body
-  const body = document.createElement('div');
-  body.className = 'gift-box-body';
-  
-  // Cost + Store (only for given gifts)
-  if (!isReceived && (gift.store || gift.cost)) {
-    const storeCost = document.createElement('div');
-    storeCost.className = 'gift-box-store-cost';
-    const parts = [];
-    if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
-    if (gift.store) parts.push(gift.store);
-    storeCost.innerHTML = parts.join(' - ');
-    body.appendChild(storeCost);
+
+  // Occasion label (if set)
+  if (gift.occasion) {
+    const occasionSpan = document.createElement('span');
+    occasionSpan.className = 'gift-occasion';
+    occasionSpan.textContent = ` (${capitalizeOccasion(gift.occasion)})`;
+    header.appendChild(occasionSpan);
   }
-  
-  // Actions row
-  const actions = document.createElement('div');
-  actions.className = 'gift-box-actions';
-  
+
   // Year dropdown
   const now = new Date().getFullYear();
   const years = [now - 1, now, now + 1, now + 2];
@@ -1151,26 +1491,36 @@ function createGiftColumnBox(gift, isReceived) {
       } catch (e) { console.error('Failed to update year', e); }
     }
   };
-  actions.appendChild(yearSelect);
-  
-  // Edit button
-  const editBtn = document.createElement('button');
-  editBtn.className = 'edit-btn';
-  editBtn.textContent = '✏️';
-  editBtn.title = 'Edit Gift';
-  editBtn.onclick = () => openEditGiftModal(gift);
-  actions.appendChild(editBtn);
-  
-  // Delete button
-  const delBtn = document.createElement('button');
-  delBtn.className = 'delete-btn';
-  delBtn.textContent = '🗑️';
-  delBtn.title = 'Delete Gift';
-  delBtn.onclick = () => deleteGift(gift.id);
-  actions.appendChild(delBtn);
-  
-  body.appendChild(actions);
-  
+  header.appendChild(yearSelect);
+
+  // Triple dot menu button
+  const menuBtn = document.createElement('button');
+  menuBtn.className = 'gift-menu-btn';
+  menuBtn.innerHTML = '&#8942;'; // vertical ellipsis
+  menuBtn.title = 'Gift Actions';
+  menuBtn.onclick = (e) => {
+    e.stopPropagation();
+    openGiftActionModal(gift);
+  };
+  header.appendChild(menuBtn);
+
+  box.appendChild(header);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'gift-box-body';
+
+  // Cost + Store (only for given gifts)
+  if (!isReceived && (gift.store || gift.cost)) {
+    const storeCost = document.createElement('div');
+    storeCost.className = 'gift-box-store-cost';
+    const parts = [];
+    if (gift.cost) parts.push(`<span class="gift-cost">${formatCurrency(gift.cost)}</span>`);
+    if (gift.store) parts.push(gift.store);
+    storeCost.innerHTML = parts.join(' - ');
+    body.appendChild(storeCost);
+  }
+
   // Notes
   if (gift.notes) {
     const notes = document.createElement('div');
@@ -1178,7 +1528,7 @@ function createGiftColumnBox(gift, isReceived) {
     notes.textContent = gift.notes;
     body.appendChild(notes);
   }
-  
+
   box.appendChild(body);
   return box;
 }
@@ -1324,38 +1674,105 @@ window.updateGiftPriority = updateGiftPriority;
 
 // --- Promote Idea to Given ---
 async function promoteIdeaToGiven(giftId) {
-  console.log('[GiftPlan] Promoting idea to given:', giftId);
-  try {
-    const { error } = await supabaseClient
-      .from('gifts')
-      .update({ type: 'given', priority: null })
-      .eq('id', giftId);
-    
-    if (error) {
-      console.error('[GiftPlan] Error promoting gift:', error);
-      return;
-    }
-    
-    // Update local state
-    const gift = allGiftsForPerson.find(g => g.id === giftId);
-    if (gift) {
+  // Show a modal to ask for year and occasion
+  const gift = allGiftsForPerson.find(g => g.id === giftId);
+  if (!gift) return;
+
+  // Create modal if not exists
+  let promoteModal = document.getElementById('promote-gift-modal');
+  if (!promoteModal) {
+    promoteModal = document.createElement('div');
+    promoteModal.id = 'promote-gift-modal';
+    promoteModal.className = 'modal';
+    promoteModal.innerHTML = `
+      <h2>Promote Gift to "Given"</h2>
+      <div style="margin-bottom:12px;">Assign a year and occasion for this gift:</div>
+      <label for="promote-gift-year">Year</label>
+      <select id="promote-gift-year"></select>
+      <label for="promote-gift-occasion">Occasion</label>
+      <select id="promote-gift-occasion">
+        <option value="">Anytime</option>
+        <option value="christmas">Christmas</option>
+        <option value="birthday">Birthday</option>
+        <option value="valentines">Valentine's Day</option>
+        <option value="anniversary">Anniversary</option>
+        <option value="mothersday">Mother's Day</option>
+        <option value="fathersday">Father's Day</option>
+        <option value="easter">Easter</option>
+        <option value="graduation">Graduation</option>
+        <option value="other">Other</option>
+      </select>
+      <div class="modal-actions">
+        <button id="promote-gift-cancel" type="button">Cancel</button>
+        <button id="promote-gift-confirm" type="button">Promote</button>
+      </div>
+    `;
+    document.body.appendChild(promoteModal);
+  }
+
+  // Populate year dropdown
+  const yearSelect = document.getElementById('promote-gift-year');
+  yearSelect.innerHTML = '<option value="">Anytime (No Year)</option>';
+  const now = new Date().getFullYear();
+  [now - 1, now, now + 1, now + 2].forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (gift.year == y) opt.selected = true;
+    yearSelect.appendChild(opt);
+  });
+  // Set current values if present
+  yearSelect.value = gift.year || '';
+  const occasionSelect = document.getElementById('promote-gift-occasion');
+  occasionSelect.value = gift.occasion || '';
+
+  // Show modal
+  document.getElementById('modal-overlay').style.display = 'block';
+  promoteModal.style.display = 'block';
+
+  // Cancel handler
+  document.getElementById('promote-gift-cancel').onclick = function() {
+    promoteModal.style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'none';
+  };
+
+  // Confirm handler
+  document.getElementById('promote-gift-confirm').onclick = async function() {
+    const newYear = yearSelect.value ? parseInt(yearSelect.value, 10) : null;
+    const newOccasion = occasionSelect.value || '';
+    try {
+      const { error } = await supabaseClient
+        .from('gifts')
+        .update({ type: 'given', priority: null, year: newYear, occasion: newOccasion })
+        .eq('id', giftId);
+      if (error) {
+        alert('Failed to promote gift.');
+        console.error('[GiftPlan] Error promoting gift:', error);
+        return;
+      }
+      // Update local state
       gift.type = 'given';
       gift.priority = null;
+      gift.year = newYear;
+      gift.occasion = newOccasion;
+      const yearGift = yearPlanGifts.find(g => g.id === giftId);
+      if (yearGift) {
+        yearGift.type = 'given';
+        yearGift.priority = null;
+        yearGift.year = newYear;
+        yearGift.occasion = newOccasion;
+      }
+      promoteModal.style.display = 'none';
+      document.getElementById('modal-overlay').style.display = 'none';
+      // Refresh views
+      renderGiftIdeas();
+      renderGiftsGiven();
+      renderStatsOnly();
+    } catch (err) {
+      alert('Failed to promote gift.');
+      console.error('[GiftPlan] Exception promoting gift:', err);
     }
-    
-    const yearGift = yearPlanGifts.find(g => g.id === giftId);
-    if (yearGift) {
-      yearGift.type = 'given';
-      yearGift.priority = null;
-    }
-    
-    // Refresh views
-    renderGiftIdeas();
-    renderGiftsGiven();
-    renderStatsOnly();
-  } catch (err) {
-    console.error('[GiftPlan] Exception promoting gift:', err);
-  }
+  };
 }
 window.promoteIdeaToGiven = promoteIdeaToGiven;
 
@@ -1453,18 +1870,32 @@ function openPersonSummaryModal(person) {
   // Info summary
   let infoHtml = '';
   infoHtml += `<div><strong>Name:</strong> <span id="person-summary-name">${person.name}</span></div>`;
-  if (person.birthday) infoHtml += `<div><strong>Birthday:</strong> <span id="person-summary-birthday">${person.birthday}</span></div>`;
+  infoHtml += `<div><strong>Birthday:</strong> <span id="person-summary-birthday">${person.birthday ? person.birthday : '<span style=\"color:#888\">(none)</span>'}</span></div>`;
   // Calculate stats for this person
   const stats = calculateStats(allGiftsForPerson);
   infoHtml += `<div><strong>Total Gifts Given:</strong> ${stats.allGiven}</div>`;
   infoHtml += `<div><strong>Total Gifts Received:</strong> ${stats.allReceived}</div>`;
-  infoHtml += `<div><strong>Notes:</strong> <span id="person-summary-notes">${person.notes ? person.notes.replace(/\n/g, '<br>') : ''}</span></div>`;
+  infoHtml += `<div><strong>Notes:</strong> <span id="person-summary-notes">${person.notes ? person.notes.replace(/\n/g, '<br>') : '<span style=\"color:#888\">(none)</span>'}</span></div>`;
   document.getElementById('person-summary-info').innerHTML = infoHtml;
   // Hide edit fields and show summary
   document.getElementById('person-summary-edit-fields').style.display = 'none';
   document.getElementById('edit-person-btn').style.display = '';
   document.getElementById('save-person-edit-btn').style.display = 'none';
   document.getElementById('cancel-person-edit-btn').style.display = 'none';
+  // Archive/Unarchive/Delete button logic
+  const archiveBtn = document.getElementById('archive-person-btn');
+  const unarchiveBtn = document.getElementById('unarchive-person-btn');
+  const deleteBtn = document.getElementById('delete-person-btn');
+  if (person.archived) {
+    archiveBtn.style.display = 'none';
+    unarchiveBtn.style.display = '';
+  } else {
+    archiveBtn.style.display = '';
+    unarchiveBtn.style.display = 'none';
+  }
+  archiveBtn.onclick = function() { toggleArchive(person.id); closePersonSummaryModal(); };
+  unarchiveBtn.onclick = function() { toggleArchive(person.id); closePersonSummaryModal(); };
+  deleteBtn.onclick = function() { deletePerson(person.id); closePersonSummaryModal(); };
 }
 
 function closePersonSummaryModal() {
@@ -1897,6 +2328,14 @@ function initGiftPlan() {
   currentYear = new Date().getFullYear();
   if (!yearPlanYear) yearPlanYear = currentYear;
   initEventListeners();
+  
+  // Initialize mobile sub-view based on whether a person is selected
+  if (selectedPersonId) {
+    mobileSubView = 'ideas';
+  } else {
+    mobileSubView = 'people';
+  }
+  
   // Restore Show All Years checkbox state
   setTimeout(() => {
     const yearToggle = document.getElementById('show-all-years-toggle');
@@ -1907,6 +2346,12 @@ function initGiftPlan() {
     if (currentView === 'people' && selectedPersonId) {
       selectPerson(selectedPersonId);
     }
+    window.addEventListener('resize', function() {
+      updateMobilePeopleViewLayout();
+      updateMobilePeopleSelectedState();
+    });
+    updateMobilePeopleViewLayout();
+    updateMobilePeopleSelectedState();
   }, 0);
 }
 

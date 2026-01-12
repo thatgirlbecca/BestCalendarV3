@@ -60,25 +60,40 @@
                         <span>People</span>
                         <button id="add-person-btn" title="Add Person">+</button>
                     </div>
-                    <ul id="people-list"></ul>
-                    <button id="toggle-archived-btn" class="toggle-archived-btn" onclick="toggleArchivedSection()">Archived ▼</button>
-                    <ul id="archived-people-list" class="archived-list" style="display: none;"></ul>
+                    <div id="people-list-container">
+                        <ul id="people-list"></ul>
+                        <div id="archived-section">
+                            <div id="toggle-archived-btn" class="toggle-archived-btn" onclick="toggleArchivedSection()">
+                                <span class="archived-toggle-arrow">▶</span>
+                                <span class="archived-toggle-label">Archived</span>
+                                <span id="archived-count" class="archived-count"></span>
+                            </div>
+                            <ul id="archived-people-list" style="display: none;"></ul>
+                        </div>
+                    </div>
                 </aside>
                 <!-- Gift Ideas Column -->
                 <section id="gift-plan-section">
                     <div class="giftplan-condensed-header">
+                        <button class="mobile-back-btn mobile-only" onclick="mobileBackToPeople()">← Back</button>
                         <span id="gift-plan-title">💡 Gift Ideas for <span id="selected-person-name">Select a Person</span></span>
                         <label class="condensed-toggle-label">
                             <input type="checkbox" id="show-all-years-toggle" onchange="handleYearFilterChange()">
                             <span>Show All Years</span>
                         </label>
                         <span id="gift-plan-total">Potential: $0.00</span>
+                        <button class="mobile-view-toggle mobile-only" onclick="mobileToggleToGivenReceived()">Given/Received →</button>
                         <button id="add-gift-btn" title="Add Gift Idea">+</button>
                     </div>
                     <div id="gift-boxes-container"></div>
                 </section>
                 <!-- Stats & Given/Received Column -->
                 <section id="stats-section">
+                    <div class="mobile-stats-header mobile-only">
+                        <button class="mobile-back-btn" onclick="mobileBackToPeople()">← Back</button>
+                        <span style="color: #ffaac9; font-weight: 600;">Given & Received</span>
+                        <button class="mobile-view-toggle" onclick="mobileToggleToIdeas()">← Ideas</button>
+                    </div>
                     <div id="stats-container">
                         <!-- Stats will be rendered here -->
                     </div>
@@ -169,6 +184,9 @@
                         </div>
                         <div class="modal-actions">
                             <button id="edit-person-btn" type="button">Edit</button>
+                            <button id="archive-person-btn" type="button">Archive</button>
+                            <button id="unarchive-person-btn" type="button" style="display:none;">Unarchive</button>
+                            <button id="delete-person-btn" type="button">Delete</button>
                             <button id="save-person-edit-btn" type="submit" style="display:none;">Save</button>
                             <button id="cancel-person-edit-btn" type="button" style="display:none;">Cancel</button>
                             <button type="button" onclick="closePersonSummaryModal()">Close</button>
@@ -281,5 +299,17 @@
     window.showCalendar = showGiftPlan;
     window.showLogin = showLoginGiftPlan;
     </script>
+    
+    <!-- Mobile Bottom Tabs -->
+    <nav class="mobile-bottom-tabs">
+        <button class="mobile-tab active" data-view="people" onclick="switchMobileTab('people')">
+            <span class="mobile-tab-icon">👥</span>
+            <span class="mobile-tab-label">People</span>
+        </button>
+        <button class="mobile-tab" data-view="yearplan" onclick="switchMobileTab('yearplan')">
+            <span class="mobile-tab-icon">📅</span>
+            <span class="mobile-tab-label">Year Plan</span>
+        </button>
+    </nav>
 </body>
 </html>
