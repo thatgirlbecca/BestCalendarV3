@@ -1,3 +1,101 @@
+/* ============================================
+	 TODO LIST MENU BUTTON (triple-dot)
+	 ============================================ */
+.todo-menu-btn {
+	background: none;
+	border: none;
+	color: #aaa;
+	font-size: 1.7em;
+	padding: 4px 10px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: background 0.2s, color 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.todo-menu-btn:hover, .todo-menu-btn:focus {
+	background: #222;
+	color: #FF4F91;
+	outline: none;
+}
+.todo-menu-icon {
+	display: inline-block;
+	line-height: 1;
+	font-weight: bold;
+	letter-spacing: 2px;
+}
+@media (max-width: 600px) {
+	.form-row-split {
+		flex-direction: column;
+		gap: 8px;
+	}
+	.form-col input[type="date"] {
+		font-size: 13px;
+		padding: 7px 6px;
+		min-width: 0;
+		width: 100%;
+		box-sizing: border-box;
+	}
+}
+/* ============================================
+	 PRIORITY BUTTON GROUP (for modal)
+	 ============================================ */
+.priority-btn-group {
+	display: flex;
+	gap: 10px;
+	margin-top: 4px;
+}
+
+.priority-btn {
+	background: #222;
+	border: 2px solid #444;
+	border-radius: 50%;
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.3em;
+	color: #fff;
+	cursor: pointer;
+	transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+	outline: none;
+	position: relative;
+}
+
+.priority-btn.selected,
+.priority-btn:focus {
+	border-color: #FF4F91;
+	background: #333;
+	box-shadow: 0 0 0 2px #FF4F9144;
+}
+
+.priority-btn[aria-pressed="true"] {
+	background: #FF4F91;
+	color: #fff;
+	border-color: #FF4F91;
+}
+
+.priority-btn:hover:not(.selected) {
+	border-color: #888;
+	background: #292929;
+}
+
+.priority-btn span {
+	pointer-events: none;
+}
+
+@media (max-width: 600px) {
+	.priority-btn {
+		width: 36px;
+		height: 36px;
+		font-size: 1em;
+	}
+	.priority-btn-group {
+		gap: 6px;
+	}
+}
 /* Themed Recurrence Settings Button */
 
 #open-recurrence-popup {

@@ -486,11 +486,11 @@ function openEditItemForm(itemId) {
 
 	editingItemId = itemId;
 	document.getElementById('modal-title').textContent = 'Edit Grocery Item';
-	
+
 	document.getElementById('item-name').value = item.name;
-	document.getElementById('item-type').value = item.type || 'food';
+	setTypeButtonGroup(item.type || 'food');
+	setPriorityButtonGroup(item.priority || '');
 	document.getElementById('item-description').value = item.description || '';
-	document.getElementById('item-priority').value = item.priority || '';
 	document.getElementById('item-labels').value = item.labels || '';
 	document.getElementById('item-due-date').value = item.due_date || '';
 	document.getElementById('item-link').value = item.link || '';
@@ -525,9 +525,9 @@ async function handleItemSubmit(event) {
 	};
 	const itemData = {
 		name: document.getElementById('item-name').value.trim(),
-		type: document.getElementById('item-type').value,
+		type: getTypeButtonGroupValue(),
 		description: document.getElementById('item-description').value.trim() || null,
-		priority: document.getElementById('item-priority').value || null,
+		priority: getPriorityButtonGroupValue(),
 		labels: document.getElementById('item-labels').value.trim() || null,
 		due_date: document.getElementById('item-due-date').value || null,
 		link: document.getElementById('item-link').value.trim() || null,
@@ -551,7 +551,7 @@ async function handleItemSubmit(event) {
 		} else {
 			// Create new item
 			itemData.user_id = user.id;
-			
+            
 			const { data, error } = await supabaseClient
 				.from('grocery_items')
 				.insert([itemData])
@@ -569,6 +569,61 @@ async function handleItemSubmit(event) {
 		alert('Failed to save item');
 	}
 }
+// --- Type & Priority Button Group Logic ---
+function setTypeButtonGroup(type) {
+	const btns = document.querySelectorAll('#item-type-group .type-btn');
+	btns.forEach(btn => {
+		if (btn.dataset.type === type) {
+			btn.classList.add('selected');
+			btn.setAttribute('aria-pressed', 'true');
+		} else {
+			btn.classList.remove('selected');
+			btn.setAttribute('aria-pressed', 'false');
+		}
+	});
+}
+
+function getTypeButtonGroupValue() {
+	const btn = document.querySelector('#item-type-group .type-btn.selected');
+	return btn ? btn.dataset.type : 'food';
+}
+
+function setPriorityButtonGroup(priority) {
+	const btns = document.querySelectorAll('#item-priority-group .priority-btn');
+	btns.forEach(btn => {
+		if (btn.dataset.priority === priority) {
+			btn.classList.add('selected');
+			btn.setAttribute('aria-pressed', 'true');
+		} else {
+			btn.classList.remove('selected');
+			btn.setAttribute('aria-pressed', 'false');
+		}
+	});
+}
+
+function getPriorityButtonGroupValue() {
+	const btn = document.querySelector('#item-priority-group .priority-btn.selected');
+	return btn ? btn.dataset.priority : '';
+}
+
+// Add event listeners for type and priority buttons
+document.addEventListener('DOMContentLoaded', () => {
+	const typeBtns = document.querySelectorAll('#item-type-group .type-btn');
+	typeBtns.forEach(btn => {
+		btn.addEventListener('click', () => {
+			setTypeButtonGroup(btn.dataset.type);
+		});
+	});
+	setTypeButtonGroup('food');
+
+	const priorityBtns = document.querySelectorAll('#item-priority-group .priority-btn');
+	priorityBtns.forEach(btn => {
+		btn.addEventListener('click', () => {
+			setPriorityButtonGroup(btn.dataset.priority);
+		});
+	});
+	setPriorityButtonGroup('');
+});
 
 // Delete item
 async function deleteItem(itemId) {

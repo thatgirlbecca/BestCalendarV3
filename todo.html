@@ -132,15 +132,15 @@
 					</div>
 				</div>
 
-				<div class="form-row">
-					<label for="todo-importance">Importance</label>
-					<select id="todo-importance">
-						<option value="1">🔴 High (1)</option>
-						<option value="2">🟠 Medium (2)</option>
-						<option value="3">🟡 Low (3)</option>
-						<option value="4" selected>⚪ None (4)</option>
-					</select>
-				</div>
+				   <div class="form-row">
+					   <label>Importance</label>
+					   <div id="todo-importance-group" class="priority-btn-group" role="group" aria-label="Importance">
+						   <button type="button" class="priority-btn" data-importance="4" title="None" aria-label="None"><span style="color:#bbb;">&#33;</span></button>
+						   <button type="button" class="priority-btn" data-importance="3" title="Low" aria-label="Low"><span style="color:#FFD600;">&#33;</span></button>
+						   <button type="button" class="priority-btn" data-importance="2" title="Medium" aria-label="Medium"><span style="color:orange;">&#33;</span></button>
+						   <button type="button" class="priority-btn" data-importance="1" title="High" aria-label="High"><span style="color:#FF4F4F;">&#33;</span></button>
+					   </div>
+				   </div>
 
 				<div class="form-row">
 					<label for="todo-labels">Labels (comma separated)</label>

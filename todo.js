@@ -392,7 +392,7 @@ function openTodoForm(todoId = null) {
       document.getElementById('todo-description').value = todo.description || '';
       document.getElementById('todo-start-date').value = todo.start_date || '';
       document.getElementById('todo-due-date').value = todo.due_date || '';
-      document.getElementById('todo-importance').value = todo.importance || 4;
+      setTodoImportanceButtonGroup(todo.importance || 4);
       document.getElementById('todo-labels').value = (todo.labels || []).join(', ');
       
       if (todo.recurrence_rule) {
@@ -429,9 +429,16 @@ function openTodoForm(todoId = null) {
   } else {
     // Adding new todo
     title.textContent = 'Add Todo';
+    setTodoImportanceButtonGroup(4);
   }
   
   modal.style.display = 'block';
+  // Always scroll modal to top when opened
+  setTimeout(() => {
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) modalContent.scrollTop = 0;
+    modal.scrollTop = 0;
+  }, 0);
   
   // Set today's date for Today view (after modal is shown)
   if (!todoId && currentView === 'today') {
@@ -691,6 +698,39 @@ function closeTodoForm() {
   editingTodoId = null;
 }
 
+// --- Priority Button Group Logic for Todo Modal ---
+function setTodoImportanceButtonGroup(importance) {
+  const btns = document.querySelectorAll('#todo-importance-group .priority-btn');
+  btns.forEach(btn => {
+    if (btn.dataset.importance == importance) {
+      btn.classList.add('selected');
+      btn.setAttribute('aria-pressed', 'true');
+    } else {
+      btn.classList.remove('selected');
+      btn.setAttribute('aria-pressed', 'false');
+    }
+  });
+}
+
+function getTodoImportanceButtonGroupValue() {
+  const btn = document.querySelector('#todo-importance-group .priority-btn.selected');
+  return btn ? btn.dataset.importance : '4';
+}
+
+// Add event listeners for importance buttons (only once)
+if (!window._todoImportanceBtnsSetup) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const importanceBtns = document.querySelectorAll('#todo-importance-group .priority-btn');
+    importanceBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTodoImportanceButtonGroup(btn.dataset.importance);
+      });
+    });
+    setTodoImportanceButtonGroup(4);
+  });
+  window._todoImportanceBtnsSetup = true;
+}
+
 // Save todo (add or update)
 async function saveTodo(event) {
   event.preventDefault();
@@ -699,7 +739,7 @@ async function saveTodo(event) {
   const description = document.getElementById('todo-description').value.trim();
   const startDate = document.getElementById('todo-start-date').value;
   const dueDate = document.getElementById('todo-due-date').value;
-  const importance = parseInt(document.getElementById('todo-importance').value);
+  const importance = parseInt(getTodoImportanceButtonGroupValue());
   const labelsInput = document.getElementById('todo-labels').value;
   const labels = labelsInput ? labelsInput.split(',').map(l => l.trim()).filter(l => l) : [];
   
@@ -1045,13 +1085,9 @@ function renderTodoItem(todo) {
         ${labelsHtml}
       </div>
       <div class="todo-actions">
-        <div class="todo-actions-row" style="justify-content: flex-end;">
-          <button class="todo-action-btn edit" onclick="editTodoItem(event, ${todo.id})" title="Edit">✏️</button>
-        </div>
-        <div class="todo-actions-row">
-          ${archiveBtn}
-          <button class="todo-action-btn delete" onclick="deleteTodoItem(event, ${todo.id})" title="Delete">🗑️</button>
-        </div>
+        <button class="todo-menu-btn" onclick="event.stopPropagation(); openTodoDetail(${todo.id});" title="More actions" aria-label="More actions">
+          <span class="todo-menu-icon">&#8942;</span>
+        </button>
       </div>
     </div>
   `;

@@ -1,3 +1,95 @@
+/* --- MOBILE HEADER FOR GIFTPLAN --- */
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0 8px 0;
+    background: #111;
+    border-bottom: 2px solid #333;
+    width: 100%;
+    z-index: 100;
+  }
+  .mobile-header-title-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  .mobile-header-icon {
+    font-size: 2em;
+    color: #FF4F91;
+    display: inline-block;
+  }
+  .mobile-header-title {
+    font-size: 1.45em;
+    color: #FF4F91;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    display: inline-block;
+  }
+  .mobile-header-nav-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+  }
+  .mobile-header .nav-dropdown {
+    font-size: 1em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #232323;
+    color: #fff;
+    border: 1px solid #444;
+  }
+  .mobile-header .logout-button {
+    font-size: 1em;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #232323;
+    color: #fff;
+    border: 1px solid #444;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mobile-header .logout-button:hover {
+    background: #444;
+    color: #fff;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .mobile-header-row .mobile-back-btn,
+  .mobile-header-row .mobile-view-toggle,
+  .mobile-header-row .add-gift-btn {
+    flex: 0 0 auto;
+  }
+  .mobile-header-row .add-gift-btn {
+    background: #232323;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 1.2em;
+    cursor: pointer;
+  }
+  .header-logo, .giftplan-header-flex, .header-buttons, .view-tabs {
+    display: none !important;
+  }
+}
 @media (max-width: 768px) {
   .header-buttons {
     justify-content: center !important;
@@ -706,10 +798,22 @@
   overflow-y: auto;
 }
 #gift-plan-title {
-  color: #ffaac9;
-}
-#selected-person-name {
+  display: flex !important;
+  align-items: center;
+  font-size: 1.15em;
+  font-weight: 600;
   color: #fff;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+#gift-plan-title-desktop {
+  display: inline !important;
+}
+#selected-person-birthday {
+  color: #888;
+  font-size: 0.98em;
+  font-weight: 400;
+  margin-left: 8px;
 }
 .giftplan-condensed-header {
   display: flex;
@@ -1526,7 +1630,6 @@
   font-style: italic;
   text-align: center;
   padding: 20px 10px;
-  font-size: 0.9em;
 }
 
 .history-col-empty {
@@ -1644,6 +1747,98 @@
     flex: 1;
   }
   
+  /* Mobile show summary only */
+  #people-view.mobile-show-summary #people-sidebar,
+  #people-view.mobile-show-summary #gift-plan-section {
+    display: none !important;
+  }
+  #people-view.mobile-show-summary #stats-section {
+    display: flex !important;
+    width: 100%;
+    flex: 1;
+  }
+  #people-view.mobile-show-summary #given-received-columns {
+    display: none !important;
+  }
+  #people-view.mobile-show-summary #stats-container {
+    display: block !important;
+  }
+  
+  /* Mobile show given only */
+  #people-view.mobile-show-given #people-sidebar,
+  #people-view.mobile-show-given #gift-plan-section {
+    display: none !important;
+  }
+  #people-view.mobile-show-given #stats-section {
+    display: flex !important;
+    width: 100%;
+    flex: 1;
+  }
+  #people-view.mobile-show-given #stats-container {
+    display: none !important;
+  }
+  #people-view.mobile-show-given #gifts-received-section-people {
+    display: none !important;
+  }
+  #people-view.mobile-show-given #gifts-given-section-people {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    border-right: none;
+    height: 100%;
+    overflow: hidden;
+  }
+  #people-view.mobile-show-given #gifts-given-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+  }
+  
+  /* Mobile show received only */
+  #people-view.mobile-show-received #people-sidebar,
+  #people-view.mobile-show-received #gift-plan-section {
+    display: none !important;
+  }
+  #people-view.mobile-show-received #stats-section {
+    display: flex !important;
+    width: 100%;
+    flex: 1;
+  }
+  #people-view.mobile-show-received #stats-container {
+    display: none !important;
+  }
+  #people-view.mobile-show-received #gifts-given-section-people {
+    display: none !important;
+  }
+  #people-view.mobile-show-received #gifts-received-section-people {
+    display: flex !important;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  #people-view.mobile-show-received #gifts-received-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+  }
+  
+  /* Mobile view dropdown */
+  .mobile-view-dropdown {
+    background: #333;
+    color: #ffaac9;
+    border: 1px solid #555;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    appearance: auto;
+  }
+  .mobile-view-dropdown:focus {
+    outline: none;
+    border-color: #FF4F91;
+  }
+  
   /* Mobile back button */
   .mobile-back-btn {
     display: flex;
@@ -1717,6 +1912,40 @@
     min-height: 300px;
   }
   
+  /* Yearplan mobile dropdown row */
+  .yearplan-mobile-dropdown-row {
+    padding: 10px 12px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    justify-content: center;
+  }
+  
+  /* Yearplan mobile show given only */
+  #yearplan-view.mobile-show-given #yearplan-received {
+    display: none !important;
+  }
+  #yearplan-view.mobile-show-given #yearplan-given {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+  }
+  #yearplan-view.mobile-show-given #yearplan-given-list {
+    padding-bottom: 80px;
+  }
+  
+  /* Yearplan mobile show received only */
+  #yearplan-view.mobile-show-received #yearplan-given {
+    display: none !important;
+  }
+  #yearplan-view.mobile-show-received #yearplan-received {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+  }
+  #yearplan-view.mobile-show-received #yearplan-received-list {
+    padding-bottom: 80px;
+  }
+  
   /* Hide on desktop */
   .mobile-only {
     display: flex !important;
@@ -1740,4 +1969,23 @@
   border-bottom: 1px solid #333;
   gap: 10px;
   align-items: center;
+}
+
+/* --- MOBILE PEOPLE SIDEBAR SCROLL FIX --- */
+@media (max-width: 768px) {
+  #people-view.mobile-show-people #people-sidebar {
+    height: calc(100vh - 56px - 60px);
+    max-height: calc(100vh - 56px - 60px);
+    overflow: hidden;
+    flex-direction: column;
+  }
+  #people-view.mobile-show-people #people-list-container {
+    max-height: 100%;
+    overflow-y: auto;
+    padding-bottom: 70px; /* Height of bottom tabs + extra for comfort */
+  }
+  /* Gift ideas list scroll fix - prevent content from being hidden behind bottom tabs */
+  #gift-boxes-container {
+    padding-bottom: 100px !important;
+  }
 }

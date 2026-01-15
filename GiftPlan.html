@@ -32,7 +32,24 @@
     <!-- GiftPlan App -->
     <div id="giftplan-app" style="display: none;">
         <div id="giftplan-header">
-            <div class="giftplan-header-flex">
+            <!-- Mobile header: icon+title centered, nav+logout below -->
+            <div class="mobile-header">
+                <div class="mobile-header-title-row">
+                    <span class="mobile-header-icon">🎁</span>
+                    <span class="mobile-header-title">Gift Plan</span>
+                </div>
+                <div class="mobile-header-nav-row">
+                    <select class="nav-dropdown" onchange="handleNavigation(this)" title="Navigate">
+                        <option value="index.html">📅 Calendar</option>
+                        <option value="todo.html">📝 Todos</option>
+                        <option value="grocery.html">🛒 Grocery</option>
+                        <option value="GiftPlan.html" selected>🎁 GiftPlan</option>
+                    </select>
+                    <button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+                </div>
+            </div>
+            <!-- Desktop header: keep old layout for desktop only -->
+            <div class="giftplan-header-flex desktop-only">
                 <div class="header-left">
                     <h1 class="header-logo">🎁 Gift Plan</h1>
                     <div class="view-tabs">
@@ -47,7 +64,7 @@
                         <option value="grocery.html">🛒 Grocery</option>
                         <option value="GiftPlan.html" selected>🎁 GiftPlan</option>
                     </select>
-                    <button id="logout-button" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
+                    <button id="logout-button-desktop" class="logout-button" onclick="handleLogout()" title="Logout">⛔</button>
                 </div>
             </div>
         </div>
@@ -75,15 +92,31 @@
                 <!-- Gift Ideas Column -->
                 <section id="gift-plan-section">
                     <div class="giftplan-condensed-header">
-                        <button class="mobile-back-btn mobile-only" onclick="mobileBackToPeople()">← Back</button>
-                        <span id="gift-plan-title">💡 Gift Ideas for <span id="selected-person-name">Select a Person</span></span>
+                        <!-- MOBILE: Back, View Dropdown, and Add buttons on same line -->
+                        <div class="mobile-header-row mobile-only">
+                            <button class="mobile-back-btn" onclick="mobileBackToPeople()">← Back</button>
+                            <select id="mobile-view-dropdown" class="mobile-view-dropdown" onchange="handleMobileViewChange(this.value)">
+                                <option value="ideas">Ideas</option>
+                                <option value="summary">Summary</option>
+                                <option value="given">Given</option>
+                                <option value="received">Received</option>
+                            </select>
+                            <button id="add-gift-btn-mobile" class="add-gift-btn" title="Add Gift Idea" onclick="document.getElementById('add-gift-btn').click()">+</button>
+                        </div>
+                        <!-- MOBILE: Only show name and birthday, no 'Gift Ideas for' -->
+                        <span id="gift-plan-title" class="mobile-only">
+                          <span id="selected-person-name">Select a Person</span>
+                          <span id="selected-person-birthday" style="margin-left:8px;color:#888;font-size:0.98em;"></span>
+                        </span>
+                        <!-- DESKTOP: Keep original title for desktop -->
+                    
                         <label class="condensed-toggle-label">
                             <input type="checkbox" id="show-all-years-toggle" onchange="handleYearFilterChange()">
-                            <span>Show All Years</span>
+                            <span class="desktop-only">Show All Years</span>
+                            <span class="mobile-only">All Yrs</span>
                         </label>
                         <span id="gift-plan-total">Potential: $0.00</span>
-                        <button class="mobile-view-toggle mobile-only" onclick="mobileToggleToGivenReceived()">Given/Received →</button>
-                        <button id="add-gift-btn" title="Add Gift Idea">+</button>
+                        <button id="add-gift-btn" class="desktop-only" title="Add Gift Idea">+</button>
                     </div>
                     <div id="gift-boxes-container"></div>
                 </section>
@@ -91,8 +124,16 @@
                 <section id="stats-section">
                     <div class="mobile-stats-header mobile-only">
                         <button class="mobile-back-btn" onclick="mobileBackToPeople()">← Back</button>
-                        <span style="color: #ffaac9; font-weight: 600;">Given & Received</span>
-                        <button class="mobile-view-toggle" onclick="mobileToggleToIdeas()">← Ideas</button>
+                        <select id="mobile-view-dropdown-stats" class="mobile-view-dropdown" onchange="handleMobileViewChange(this.value)">
+                            <option value="ideas">Ideas</option>
+                            <option value="summary">Summary</option>
+                            <option value="given">Given</option>
+                            <option value="received">Received</option>
+                        </select>
+                        <span></span>
+                    </div>
+                    <div class="mobile-summary-person-name mobile-only" style="display:none; font-size:1.1em; font-weight:600; color:#ffaac9; margin: 12px 0 0 12px;">
+                      <span id="mobile-summary-person-name"></span>
                     </div>
                     <div id="stats-container">
                         <!-- Stats will be rendered here -->
@@ -129,6 +170,13 @@
                           <span id="yearplan-spent">Total Spent: $0.00</span>
                       </div>
                   </div>
+                </div>
+                <!-- Mobile dropdown for Given/Received -->
+                <div class="yearplan-mobile-dropdown-row mobile-only">
+                    <select id="yearplan-mobile-view-dropdown" class="mobile-view-dropdown" onchange="handleYearplanMobileViewChange(this.value)">
+                        <option value="given">Gifts Given</option>
+                        <option value="received">Gifts Received</option>
+                    </select>
                 </div>
                 <div class="yearplan-2col">
                     <section id="yearplan-given">

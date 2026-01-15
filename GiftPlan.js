@@ -101,7 +101,7 @@ window.openGiftActionModal = openGiftActionModal;
 // Do not auto-show or auto-create the modal on DOMContentLoaded. Only create/show when needed.
 
 // --- Mobile State ---
-let mobileSubView = 'people'; // 'people', 'ideas', 'given-received' (for People View sub-navigation)
+let mobileSubView = localStorage.getItem('giftplan_mobileSubView') || 'people'; // 'people', 'ideas', 'summary', 'given', 'received'
 
 // --- Mobile Detection ---
 function isMobileView() {
@@ -121,6 +121,7 @@ function switchMobileTab(view) {
   // Reset mobile sub-view when switching tabs
   if (view === 'people') {
     mobileSubView = selectedPersonId ? 'ideas' : 'people';
+    localStorage.setItem('giftplan_mobileSubView', mobileSubView);
   }
   updateMobilePeopleViewLayout();
 }
@@ -129,21 +130,70 @@ window.switchMobileTab = switchMobileTab;
 // --- Mobile People View Sub-Navigation ---
 function mobileBackToPeople() {
   mobileSubView = 'people';
+  localStorage.setItem('giftplan_mobileSubView', mobileSubView);
   updateMobilePeopleViewLayout();
 }
 window.mobileBackToPeople = mobileBackToPeople;
 
 function mobileToggleToGivenReceived() {
   mobileSubView = 'given-received';
+  localStorage.setItem('giftplan_mobileSubView', mobileSubView);
   updateMobilePeopleViewLayout();
 }
 window.mobileToggleToGivenReceived = mobileToggleToGivenReceived;
 
 function mobileToggleToIdeas() {
   mobileSubView = 'ideas';
+  localStorage.setItem('giftplan_mobileSubView', mobileSubView);
   updateMobilePeopleViewLayout();
 }
 window.mobileToggleToIdeas = mobileToggleToIdeas;
+
+// Handle mobile view dropdown change
+function handleMobileViewChange(value) {
+  if (value === 'ideas') {
+    mobileSubView = 'ideas';
+  } else if (value === 'summary') {
+    mobileSubView = 'summary';
+  } else if (value === 'given') {
+    mobileSubView = 'given';
+  } else if (value === 'received') {
+    mobileSubView = 'received';
+  }
+  localStorage.setItem('giftplan_mobileSubView', mobileSubView);
+  updateMobilePeopleViewLayout();
+}
+window.handleMobileViewChange = handleMobileViewChange;
+
+// --- Yearplan Mobile State ---
+let yearplanMobileSubView = localStorage.getItem('giftplan_yearplanMobileSubView') || 'given'; // 'given' or 'received'
+
+// Handle yearplan mobile view dropdown change
+function handleYearplanMobileViewChange(value) {
+  yearplanMobileSubView = value;
+  localStorage.setItem('giftplan_yearplanMobileSubView', yearplanMobileSubView);
+  updateYearplanMobileViewLayout();
+}
+window.handleYearplanMobileViewChange = handleYearplanMobileViewChange;
+
+function updateYearplanMobileViewLayout() {
+  const yearplanView = document.getElementById('yearplan-view');
+  if (!yearplanView) return;
+  
+  if (!isMobileView()) {
+    // Desktop: remove mobile classes
+    yearplanView.classList.remove('mobile-show-given', 'mobile-show-received');
+    return;
+  }
+  
+  // Mobile: apply class based on dropdown
+  yearplanView.classList.remove('mobile-show-given', 'mobile-show-received');
+  yearplanView.classList.add(`mobile-show-${yearplanMobileSubView}`);
+  
+  // Sync dropdown
+  const dropdown = document.getElementById('yearplan-mobile-view-dropdown');
+  if (dropdown) dropdown.value = yearplanMobileSubView;
+}
 
 // --- Update Mobile People View Layout ---
 function updateMobilePeopleViewLayout() {
@@ -151,7 +201,7 @@ function updateMobilePeopleViewLayout() {
     // Desktop: remove mobile classes and show bottom tabs
     const peopleView = document.getElementById('people-view');
     if (peopleView) {
-      peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received');
+      peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received', 'mobile-show-given', 'mobile-show-received', 'mobile-show-summary');
     }
     const bottomTabs = document.querySelector('.mobile-bottom-tabs');
     if (bottomTabs) bottomTabs.style.display = 'none';
@@ -173,17 +223,24 @@ function updateMobilePeopleViewLayout() {
   if (!peopleView) return;
   
   // Remove all mobile sub-view classes
-  peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received');
+  peopleView.classList.remove('mobile-show-people', 'mobile-show-ideas', 'mobile-show-given-received', 'mobile-show-given', 'mobile-show-received', 'mobile-show-summary');
   
   // Apply the appropriate class based on mobileSubView
   if (currentView === 'people') {
     peopleView.classList.add(`mobile-show-${mobileSubView}`);
     
-    // Show/hide mobile stats header
+    // Show/hide mobile stats header based on view
     const mobileStatsHeader = document.querySelector('.mobile-stats-header');
     if (mobileStatsHeader) {
-      mobileStatsHeader.style.display = mobileSubView === 'given-received' ? 'flex' : 'none';
+      mobileStatsHeader.style.display = (mobileSubView === 'given-received' || mobileSubView === 'given' || mobileSubView === 'received' || mobileSubView === 'summary') ? 'flex' : 'none';
     }
+    
+    // Sync dropdown values
+    const dropdown1 = document.getElementById('mobile-view-dropdown');
+    const dropdown2 = document.getElementById('mobile-view-dropdown-stats');
+    const dropdownValue = mobileSubView === 'given-received' ? 'given' : mobileSubView;
+    if (dropdown1) dropdown1.value = dropdownValue;
+    if (dropdown2) dropdown2.value = dropdownValue;
   }
 }
 
@@ -274,6 +331,7 @@ function switchView(view) {
   // Load data for the view
   if (view === 'yearplan') {
     loadYearPlanData();
+    updateYearplanMobileViewLayout();
   }
   
   // Update mobile layout
@@ -654,27 +712,40 @@ function renderGiftIdeas() {
 
   if (!selectedPersonId) {
     if (titleEl) titleEl.textContent = 'Select a Person';
-    if (totalEl) totalEl.textContent = 'Potential: $0.00';
-    container.innerHTML = `
-      <div class="no-person-selected">
-        <p>👈 Select a person from the list</p>
-        <p>to view and manage their gift ideas</p>
-      </div>
-    `;
+    if (totalEl) totalEl.textContent = isMobileView() ? '$0.00' : 'Potential: $0.00';
+    // Only show the empty message on desktop, or use a generic message for mobile
+    if (!isMobileView()) {
+      container.innerHTML = `
+        <div class="no-person-selected">
+          <p>👈 Select a person from the list</p>
+          <p>to view and manage their gift ideas</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = '';
+    }
     return;
   }
 
   const person = allPeopleList.find(p => p.id === selectedPersonId);
   if (titleEl) titleEl.textContent = person?.name || 'Unknown';
 
-  // Birthday label (if present)
-  if (person && person.birthday) {
+  // Set name and birthday for mobile and desktop titles
+  const mobileNameEl = document.getElementById('selected-person-name');
+  const mobileBirthdayEl = document.getElementById('selected-person-birthday');
+  const desktopNameEl = document.getElementById('selected-person-name-desktop');
+  if (mobileNameEl) mobileNameEl.textContent = person?.name || 'Select a Person';
+  if (mobileBirthdayEl) mobileBirthdayEl.textContent = person?.birthday ? `🎂 ${person.birthday}` : '';
+  if (desktopNameEl) desktopNameEl.textContent = person?.name || 'Select a Person';
+
+  // Birthday label (desktop only)
+  if (person && person.birthday && !isMobileView()) {
     birthdayLabel = document.createElement('div');
     birthdayLabel.id = birthdayId;
     birthdayLabel.className = 'person-birthday-label';
     birthdayLabel.textContent = `🎂 Birthday: ${person.birthday}`;
-    // Insert after the name in the header
-    const planTitle = document.getElementById('gift-plan-title');
+    // Insert after the name in the header (desktop)
+    const planTitle = document.getElementById('gift-plan-title-desktop');
     if (planTitle && planTitle.parentNode) {
       planTitle.parentNode.insertBefore(birthdayLabel, planTitle.nextSibling);
     }
@@ -686,15 +757,20 @@ function renderGiftIdeas() {
 
   // Calculate potential cost (sum of all idea costs)
   const potentialCost = filteredGifts.reduce((sum, g) => sum + (+g.cost || 0), 0);
-  if (totalEl) totalEl.textContent = `Potential: ${formatCurrency(potentialCost)}`;
+  if (totalEl) totalEl.textContent = isMobileView() ? formatCurrency(potentialCost) : `Potential: ${formatCurrency(potentialCost)}`;
 
   if (filteredGifts.length === 0) {
-    container.innerHTML = `
-      <div class="empty-gifts-state">
-        <p>No gift ideas yet for ${person?.name || 'this person'}.</p>
-        <p>Click the + button above to add a gift idea!</p>
-      </div>
-    `;
+    // Only show the empty message on desktop, or use a generic message for mobile
+    if (!isMobileView()) {
+      container.innerHTML = `
+        <div class="empty-gifts-state">
+          <p>No gift ideas yet for ${person?.name || 'this person'}.</p>
+          <p>Click the + button above to add a gift idea!</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = '';
+    }
     return;
   }
 
@@ -1613,221 +1689,25 @@ function renderStatsOnly() {
   renderStats(stats);
 }
 
-function toggleHistoryYear(year, type) {
-  const key = `${type}-${year}`;
-  const yearEl = document.querySelector(`.history-year[data-year="${year}"][data-type="${type}"]`);
-  if (!yearEl) return;
-  
-  const content = yearEl.querySelector('.history-year-content');
-  const toggle = yearEl.querySelector('.year-toggle');
-  
-  if (collapsedYears.has(key)) {
-    collapsedYears.delete(key);
-    content.classList.remove('collapsed');
-    toggle.textContent = '▼';
+// Show/hide person's name in summary view (mobile only)
+function updateMobileSummaryPersonName() {
+  const nameDiv = document.querySelector('.mobile-summary-person-name');
+  if (!nameDiv) return;
+  if (isMobileView() && mobileSubView === 'summary' && selectedPersonId) {
+    const person = allPeople.find(p => p.id == selectedPersonId);
+    nameDiv.style.display = 'block';
+    nameDiv.querySelector('#mobile-summary-person-name').textContent = person ? person.name : '';
   } else {
-    collapsedYears.add(key);
-    content.classList.add('collapsed');
-    toggle.textContent = '▶';
-  }
-}
-window.toggleHistoryYear = toggleHistoryYear;
-
-function loadMoreHistory() {
-  historyYearsShown += 5;
-  renderHistory(allGiftsForPerson);
-}
-window.loadMoreHistory = loadMoreHistory;
-
-// --- Update Priority ---
-async function updateGiftPriority(giftId, priority) {
-  console.log('[GiftPlan] Updating priority:', giftId, '->', priority);
-  try {
-    const { error } = await supabaseClient
-      .from('gifts')
-      .update({ priority })
-      .eq('id', giftId);
-    
-    if (error) {
-      console.error('[GiftPlan] Error updating priority:', error);
-      return;
-    }
-    
-    // Update local state
-    const gift = allGiftsForPerson.find(g => g.id === giftId);
-    if (gift) gift.priority = priority;
-    
-    const yearGift = yearPlanGifts.find(g => g.id === giftId);
-    if (yearGift) yearGift.priority = priority;
-    
-    // Re-render current view
-    if (currentView === 'people') {
-      renderGiftIdeas();
-    } else {
-      renderYearPlanView();
-    }
-  } catch (err) {
-    console.error('[GiftPlan] Exception updating priority:', err);
-  }
-}
-window.updateGiftPriority = updateGiftPriority;
-
-// --- Promote Idea to Given ---
-async function promoteIdeaToGiven(giftId) {
-  // Show a modal to ask for year and occasion
-  const gift = allGiftsForPerson.find(g => g.id === giftId);
-  if (!gift) return;
-
-  // Create modal if not exists
-  let promoteModal = document.getElementById('promote-gift-modal');
-  if (!promoteModal) {
-    promoteModal = document.createElement('div');
-    promoteModal.id = 'promote-gift-modal';
-    promoteModal.className = 'modal';
-    promoteModal.innerHTML = `
-      <h2>Promote Gift to "Given"</h2>
-      <div style="margin-bottom:12px;">Assign a year and occasion for this gift:</div>
-      <label for="promote-gift-year">Year</label>
-      <select id="promote-gift-year"></select>
-      <label for="promote-gift-occasion">Occasion</label>
-      <select id="promote-gift-occasion">
-        <option value="">Anytime</option>
-        <option value="christmas">Christmas</option>
-        <option value="birthday">Birthday</option>
-        <option value="valentines">Valentine's Day</option>
-        <option value="anniversary">Anniversary</option>
-        <option value="mothersday">Mother's Day</option>
-        <option value="fathersday">Father's Day</option>
-        <option value="easter">Easter</option>
-        <option value="graduation">Graduation</option>
-        <option value="other">Other</option>
-      </select>
-      <div class="modal-actions">
-        <button id="promote-gift-cancel" type="button">Cancel</button>
-        <button id="promote-gift-confirm" type="button">Promote</button>
-      </div>
-    `;
-    document.body.appendChild(promoteModal);
-  }
-
-  // Populate year dropdown
-  const yearSelect = document.getElementById('promote-gift-year');
-  yearSelect.innerHTML = '<option value="">Anytime (No Year)</option>';
-  const now = new Date().getFullYear();
-  [now - 1, now, now + 1, now + 2].forEach(y => {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    if (gift.year == y) opt.selected = true;
-    yearSelect.appendChild(opt);
-  });
-  // Set current values if present
-  yearSelect.value = gift.year || '';
-  const occasionSelect = document.getElementById('promote-gift-occasion');
-  occasionSelect.value = gift.occasion || '';
-
-  // Show modal
-  document.getElementById('modal-overlay').style.display = 'block';
-  promoteModal.style.display = 'block';
-
-  // Cancel handler
-  document.getElementById('promote-gift-cancel').onclick = function() {
-    promoteModal.style.display = 'none';
-    document.getElementById('modal-overlay').style.display = 'none';
-  };
-
-  // Confirm handler
-  document.getElementById('promote-gift-confirm').onclick = async function() {
-    const newYear = yearSelect.value ? parseInt(yearSelect.value, 10) : null;
-    const newOccasion = occasionSelect.value || '';
-    try {
-      const { error } = await supabaseClient
-        .from('gifts')
-        .update({ type: 'given', priority: null, year: newYear, occasion: newOccasion })
-        .eq('id', giftId);
-      if (error) {
-        alert('Failed to promote gift.');
-        console.error('[GiftPlan] Error promoting gift:', error);
-        return;
-      }
-      // Update local state
-      gift.type = 'given';
-      gift.priority = null;
-      gift.year = newYear;
-      gift.occasion = newOccasion;
-      const yearGift = yearPlanGifts.find(g => g.id === giftId);
-      if (yearGift) {
-        yearGift.type = 'given';
-        yearGift.priority = null;
-        yearGift.year = newYear;
-        yearGift.occasion = newOccasion;
-      }
-      promoteModal.style.display = 'none';
-      document.getElementById('modal-overlay').style.display = 'none';
-      // Refresh views
-      renderGiftIdeas();
-      renderGiftsGiven();
-      renderStatsOnly();
-    } catch (err) {
-      alert('Failed to promote gift.');
-      console.error('[GiftPlan] Exception promoting gift:', err);
-    }
-  };
-}
-window.promoteIdeaToGiven = promoteIdeaToGiven;
-
-// --- Delete ---
-async function deleteGift(giftId) {
-  if (!confirm('Delete this gift?')) return;
-  console.log('[GiftPlan] Deleting gift:', giftId);
-  try {
-    const { error } = await supabaseClient
-      .from('gifts')
-      .delete()
-      .eq('id', giftId);
-    
-    if (error) {
-      console.error('[GiftPlan] Error deleting gift:', error);
-      return;
-    }
-    
-    allGiftsForPerson = allGiftsForPerson.filter(g => g.id !== giftId);
-    yearPlanGifts = yearPlanGifts.filter(g => g.id !== giftId);
-    
-    if (currentView === 'people') {
-      renderGiftIdeas();
-      renderGiftsGiven();
-      renderGiftsReceived();
-      renderStatsOnly();
-    } else {
-      renderYearPlanView();
-    }
-  } catch (err) {
-    console.error('[GiftPlan] Exception deleting gift:', err);
+    nameDiv.style.display = 'none';
   }
 }
 
-async function deletePerson(personId) {
-  if (!confirm('Delete this person and all their gifts?')) return;
-  console.log('[GiftPlan] Deleting person:', personId);
-  try {
-    await supabaseClient.from('gifts').delete().eq('person_id', personId);
-    const { error } = await supabaseClient.from('people').delete().eq('id', personId);
-    if (error) console.error('[GiftPlan] Error deleting person:', error);
-    
-    if (selectedPersonId === personId) {
-      selectedPersonId = null;
-      allGiftsForPerson = [];
-    }
-    
-    await loadData();
-    if (currentView === 'yearplan') {
-      await loadYearPlanData();
-    }
-  } catch (err) {
-    console.error('[GiftPlan] Exception deleting person:', err);
-  }
-}
+// Call this after layout update
+const oldUpdateMobilePeopleViewLayout = updateMobilePeopleViewLayout;
+updateMobilePeopleViewLayout = function() {
+  oldUpdateMobilePeopleViewLayout.apply(this, arguments);
+  updateMobileSummaryPersonName();
+};
 
 // --- Initialize event listeners ---
 function initEventListeners() {
@@ -2329,13 +2209,6 @@ function initGiftPlan() {
   if (!yearPlanYear) yearPlanYear = currentYear;
   initEventListeners();
   
-  // Initialize mobile sub-view based on whether a person is selected
-  if (selectedPersonId) {
-    mobileSubView = 'ideas';
-  } else {
-    mobileSubView = 'people';
-  }
-  
   // Restore Show All Years checkbox state
   setTimeout(() => {
     const yearToggle = document.getElementById('show-all-years-toggle');
@@ -2346,9 +2219,13 @@ function initGiftPlan() {
     if (currentView === 'people' && selectedPersonId) {
       selectPerson(selectedPersonId);
     }
+    if (currentView === 'yearplan') {
+      updateYearplanMobileViewLayout();
+    }
     window.addEventListener('resize', function() {
       updateMobilePeopleViewLayout();
       updateMobilePeopleSelectedState();
+      updateYearplanMobileViewLayout();
     });
     updateMobilePeopleViewLayout();
     updateMobilePeopleSelectedState();
@@ -2360,7 +2237,18 @@ const originalShowGiftPlan = window.showGiftPlan || function() {};
 window.showGiftPlan = function() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('giftplan-app').style.display = 'block';
-  setTimeout(initGiftPlan, 100);
+  setTimeout(() => {
+    // Always start at people section in mobile view
+    if (isMobileView()) {
+      mobileSubView = 'people';
+      currentView = 'people';
+      localStorage.setItem('giftplan_currentView', 'people');
+      selectedPersonId = null;
+      localStorage.setItem('giftplan_selectedPersonId', '');
+      switchMobileTab('people');
+    }
+    initGiftPlan();
+  }, 100);
 };
 
 // Also try to init on DOMContentLoaded if already authenticated
