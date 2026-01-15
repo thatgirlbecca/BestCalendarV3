@@ -131,6 +131,9 @@ window.switchMobileTab = switchMobileTab;
 function mobileBackToPeople() {
   mobileSubView = 'people';
   localStorage.setItem('giftplan_mobileSubView', mobileSubView);
+  // Clear selected person so refresh does not reopen a person
+  selectedPersonId = null;
+  localStorage.removeItem('giftplan_selectedPersonId');
   updateMobilePeopleViewLayout();
 }
 window.mobileBackToPeople = mobileBackToPeople;
@@ -245,10 +248,13 @@ function updateMobilePeopleViewLayout() {
 }
 
 // --- Update Mobile Selected State (called when person is selected) ---
-function updateMobilePeopleSelectedState() {
+function updateMobilePeopleSelectedState(isNewSelection = false) {
   if (isMobileView() && currentView === 'people' && selectedPersonId) {
-    // When a person is selected on mobile, show their ideas
-    mobileSubView = 'ideas';
+    // Only set to summary when user actively selects a new person, not on page refresh
+    if (isNewSelection) {
+      mobileSubView = 'summary';
+      localStorage.setItem('giftplan_mobileSubView', mobileSubView);
+    }
     updateMobilePeopleViewLayout();
   }
 }
@@ -270,6 +276,14 @@ let archivedPeople = [];
 let allGiftsForPerson = [];
 let yearPlanGifts = [];
 let selectedPersonId = localStorage.getItem('giftplan_selectedPersonId') || null;
+// --- Fix: On mobile, if sidebar was open, keep it open after refresh ---
+if (isMobileView() && localStorage.getItem('giftplan_currentView') === 'people') {
+  // If the last subview was 'ideas' but there is no selected person, reset to 'people'
+  if (mobileSubView === 'ideas' && !selectedPersonId) {
+    mobileSubView = 'people';
+    localStorage.setItem('giftplan_mobileSubView', 'people');
+  }
+}
 
 // Modal state
 let giftModalMode = 'people'; // 'people', 'yearplan-given', 'yearplan-received', 'edit'
@@ -1171,7 +1185,7 @@ function updateYearPlanTotals(givenGifts) {
 }
 
 // --- Event Handlers ---
-function selectPerson(personId) {
+function selectPerson(personId, isInit = false) {
   console.log('[GiftPlan] Selected person:', personId);
   selectedPersonId = personId;
   localStorage.setItem('giftplan_selectedPersonId', personId || '');
@@ -1187,7 +1201,8 @@ function selectPerson(personId) {
   
   loadGiftsForSelectedPerson();
   updateMobilePeopleViewLayout();
-  updateMobilePeopleSelectedState();
+  // Only switch to summary on new user selection, not on page refresh/init
+  updateMobilePeopleSelectedState(!isInit);
 }
 
 async function loadGiftsForSelectedPerson() {
@@ -1252,9 +1267,17 @@ function renderStats(stats) {
     return;
   }
   
+  // Get person info for name and birthday
+  const person = allPeople.find(p => p.id == selectedPersonId) || archivedPeople.find(p => p.id == selectedPersonId);
+  const personName = person ? person.name : '';
+  const personBirthday = person && person.birthday ? `🎂 ${person.birthday}` : '';
+  
   const statsHTML = `
     <div class="stats-summary">
-      <div class="stats-title">📊 SUMMARY</div>
+      <div class="stats-title" style="display:flex;align-items:center;gap:12px;">
+        <span style="color:#ffaac9;font-weight:600;">${personName}</span>
+        <span style="color:#888;font-size:0.9em;font-weight:400;">${personBirthday}</span>
+      </div>
       <div class="stats-row">
         <span>${stats.lastYear}: 
           <span class="stat-given">Given: ${stats.lastYearGiven}</span> 
@@ -1694,9 +1717,11 @@ function updateMobileSummaryPersonName() {
   const nameDiv = document.querySelector('.mobile-summary-person-name');
   if (!nameDiv) return;
   if (isMobileView() && mobileSubView === 'summary' && selectedPersonId) {
-    const person = allPeople.find(p => p.id == selectedPersonId);
+    const person = allPeople.find(p => p.id == selectedPersonId) || archivedPeople.find(p => p.id == selectedPersonId);
     nameDiv.style.display = 'block';
     nameDiv.querySelector('#mobile-summary-person-name').textContent = person ? person.name : '';
+    const birthdayEl = nameDiv.querySelector('#mobile-summary-person-birthday');
+    if (birthdayEl) birthdayEl.textContent = person && person.birthday ? `🎂 ${person.birthday}` : '';
   } else {
     nameDiv.style.display = 'none';
   }
@@ -2217,7 +2242,7 @@ function initGiftPlan() {
     // Restore last view and person
     switchView(currentView);
     if (currentView === 'people' && selectedPersonId) {
-      selectPerson(selectedPersonId);
+      selectPerson(selectedPersonId, true); // true = init/refresh, don't reset to summary
     }
     if (currentView === 'yearplan') {
       updateYearplanMobileViewLayout();
@@ -2238,14 +2263,19 @@ window.showGiftPlan = function() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('giftplan-app').style.display = 'block';
   setTimeout(() => {
-    // Always start at people section in mobile view
+    // On mobile, only reset to people sidebar if no person is selected
+    // Otherwise, preserve the user's last position
     if (isMobileView()) {
-      mobileSubView = 'people';
-      currentView = 'people';
-      localStorage.setItem('giftplan_currentView', 'people');
-      selectedPersonId = null;
-      localStorage.setItem('giftplan_selectedPersonId', '');
-      switchMobileTab('people');
+      const storedPersonId = localStorage.getItem('giftplan_selectedPersonId');
+      if (!storedPersonId) {
+        // No person selected, reset to people sidebar
+        mobileSubView = 'people';
+        currentView = 'people';
+        localStorage.setItem('giftplan_currentView', 'people');
+        localStorage.setItem('giftplan_mobileSubView', 'people');
+        switchMobileTab('people');
+      }
+      // If there IS a stored person, keep the stored mobileSubView (already loaded from localStorage)
     }
     initGiftPlan();
   }, 100);

@@ -1,5 +1,28 @@
 /* --- MOBILE HEADER FOR GIFTPLAN --- */
 @media (max-width: 768px) {
+  /* Ensure people list is visible above bottom tabs */
+  #people-list-container {
+    padding-bottom: 130px !important;
+  }
+  /* Mobile ideas header - person name with add button */
+  .mobile-ideas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #232323;
+    border-bottom: 1px solid #333;
+    font-weight: 600;
+    color: #e0e0e0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .mobile-ideas-header #gift-plan-title {
+    font-size: 0.95em;
+  }
+  .mobile-ideas-header #selected-person-name {
+    color: rgb(255, 170, 201);
+  }
   .mobile-header {
     display: flex;
     flex-direction: column;
@@ -9,6 +32,10 @@
     border-bottom: 2px solid #333;
     width: 100%;
     z-index: 100;
+  }
+  /* Move add person button in sidebar header away from right edge */
+  .sidebar-header #add-person-btn {
+    margin-right: 20px;
   }
   .mobile-header-title-row {
     display: flex;
@@ -1954,6 +1981,7 @@
 
 /* Hide mobile elements on desktop */
 @media (min-width: 769px) {
+  .mobile-header,
   .mobile-bottom-tabs,
   .mobile-back-btn,
   .mobile-view-toggle,

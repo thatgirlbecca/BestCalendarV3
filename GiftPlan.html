@@ -92,22 +92,25 @@
                 <!-- Gift Ideas Column -->
                 <section id="gift-plan-section">
                     <div class="giftplan-condensed-header">
-                        <!-- MOBILE: Back, View Dropdown, and Add buttons on same line -->
+                        <!-- MOBILE: Back and View Dropdown on same line -->
                         <div class="mobile-header-row mobile-only">
                             <button class="mobile-back-btn" onclick="mobileBackToPeople()">← Back</button>
                             <select id="mobile-view-dropdown" class="mobile-view-dropdown" onchange="handleMobileViewChange(this.value)">
-                                <option value="ideas">Ideas</option>
                                 <option value="summary">Summary</option>
+                                <option value="ideas">Ideas</option>
                                 <option value="given">Given</option>
                                 <option value="received">Received</option>
                             </select>
-                            <button id="add-gift-btn-mobile" class="add-gift-btn" title="Add Gift Idea" onclick="document.getElementById('add-gift-btn').click()">+</button>
+                            <span></span>
                         </div>
-                        <!-- MOBILE: Only show name and birthday, no 'Gift Ideas for' -->
-                        <span id="gift-plan-title" class="mobile-only">
-                          <span id="selected-person-name">Select a Person</span>
-                          <span id="selected-person-birthday" style="margin-left:8px;color:#888;font-size:0.98em;"></span>
-                        </span>
+                        <!-- MOBILE: Person name header row with add button -->
+                        <div class="mobile-ideas-header mobile-only">
+                            <span id="gift-plan-title">
+                              <span id="selected-person-name">Select a Person</span>
+                              <span id="selected-person-birthday" style="margin-left:8px;color:#888;font-size:0.98em;"></span>
+                            </span>
+                            <button id="add-gift-btn-mobile" class="add-gift-column-btn" title="Add Gift Idea" onclick="document.getElementById('add-gift-btn').click()">+</button>
+                        </div>
                         <!-- DESKTOP: Keep original title for desktop -->
                     
                         <label class="condensed-toggle-label">
@@ -125,15 +128,16 @@
                     <div class="mobile-stats-header mobile-only">
                         <button class="mobile-back-btn" onclick="mobileBackToPeople()">← Back</button>
                         <select id="mobile-view-dropdown-stats" class="mobile-view-dropdown" onchange="handleMobileViewChange(this.value)">
-                            <option value="ideas">Ideas</option>
                             <option value="summary">Summary</option>
+                            <option value="ideas">Ideas</option>
                             <option value="given">Given</option>
                             <option value="received">Received</option>
                         </select>
                         <span></span>
                     </div>
-                    <div class="mobile-summary-person-name mobile-only" style="display:none; font-size:1.1em; font-weight:600; color:#ffaac9; margin: 12px 0 0 12px;">
+                    <div class="mobile-summary-person-name mobile-only" style="display:none; font-size:1.1em; font-weight:600; color:#ffaac9; margin: 12px 0 12px 12px;">
                       <span id="mobile-summary-person-name"></span>
+                      <span id="mobile-summary-person-birthday" style="margin-left:8px;color:#888;font-size:0.9em;font-weight:400;"></span>
                     </div>
                     <div id="stats-container">
                         <!-- Stats will be rendered here -->
