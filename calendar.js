@@ -820,17 +820,16 @@ function adjustGridRowHeights() {
   // Measure available space
   const headerH = header.getBoundingClientRect().height;
   const weekdaysH = weekdays.getBoundingClientRect().height;
-  const availableHeight = Math.max(80, window.innerHeight - headerH - weekdaysH - 12);
+  const availableHeight = window.innerHeight - headerH - weekdaysH;
+  const availableWidth = window.innerWidth;
 
-  // Compute cell width from available width (fill horizontally) and row height
-  const containerWidth = monthDays.clientWidth;
+  // Compute cell width to fill entire width (accounting for gaps)
   const totalGapWidth = gap * (7 - 1);
-  const availableWidthForCells = Math.max(0, containerWidth - totalGapWidth);
-  const cellWidth = Math.max(40, Math.floor(availableWidthForCells / 7));
+  const cellWidth = (availableWidth - totalGapWidth) / 7;
 
-  // Compute row height so all weeks fit into available height
+  // Compute row height so all weeks fit into available height (accounting for gaps)
   const totalGapHeight = gap * (weeks - 1);
-  const rowHeight = Math.max(24, Math.floor((availableHeight - totalGapHeight) / weeks));
+  const rowHeight = (availableHeight - totalGapHeight) / weeks;
 
   // Apply pixel-based columns so cells align wall-to-wall, and rows sized to fit vertically
   monthDays.style.gridTemplateColumns = `repeat(7, ${cellWidth}px)`;

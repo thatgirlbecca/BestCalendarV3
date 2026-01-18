@@ -5,11 +5,10 @@ function ensureGiftActionModal() {
   if (document.getElementById('gift-action-modal')) return;
   const modal = document.createElement('div');
   modal.id = 'gift-action-modal';
-  modal.className = 'modal';
-  modal.style.background = 'rgba(26,26,26,0.92)';
+  modal.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1100;overflow-y:auto;';
   modal.innerHTML = `
-    <div class="modal-content gift-action-modal-content" style="background:#1a1a1a;min-width:320px;max-width:95vw;padding:24px 20px 18px 20px;box-shadow:0 4px 24px rgba(0,0,0,0.18);border-radius:12px;color:#f2f2f2;">
-      <span id="close-gift-action-modal" class="close" style="font-size:1.7em;position:absolute;top:10px;right:18px;cursor:pointer;color:#f2f2f2;">&times;</span>
+    <div class="modal-content gift-action-modal-content" style="position:relative;margin:20px auto;background:#1a1a1a;width:320px;max-width:calc(100vw - 32px);max-height:calc(100vh - 40px);overflow-y:auto;padding:24px 20px 18px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.45);border-radius:10px;color:#f2f2f2;border:none;box-sizing:border-box;">
+      <span id="close-gift-action-modal" class="close" style="font-size:1.7em;position:absolute;top:10px;right:12px;cursor:pointer;color:#f2f2f2;">&times;</span>
       <div id="gift-action-modal-title" class="modal-title" style="font-size:1.2em;font-weight:600;margin-bottom:18px;color:#f2f2f2;"></div>
       <div id="gift-action-modal-body" style="display:flex;flex-direction:column;align-items:center;gap:18px;">
         <div id="gift-action-notes-section" style="width:100%;margin-bottom:12px;">
@@ -17,10 +16,30 @@ function ensureGiftActionModal() {
           <p id="gift-action-notes-text" style="margin:0;padding:7px 10px;border-radius:6px;background:#232323;color:#f2f2f2;font-size:1em;box-sizing:border-box;min-height:38px;white-space:pre-line;"></p>
           <button id="gift-action-save-notes-btn" style="margin-top:7px;padding:6px 18px;border-radius:6px;background:#2d7cff;color:#fff;border:none;font-size:1em;cursor:pointer;float:right;display:none;">💾 Save</button>
         </div>
+        <div id="gift-action-year-section" style="width:100%;margin-bottom:8px;">
+          <label style="font-size:0.98em;font-weight:500;display:block;margin-bottom:4px;color:#f2f2f2;">Year</label>
+          <select id="gift-action-year-select" style="width:100%;padding:8px;border-radius:6px;background:#232323;color:#f2f2f2;border:1px solid #444;font-size:1em;"></select>
+        </div>
+        <div id="gift-action-occasion-section" style="width:100%;margin-bottom:8px;">
+          <label style="font-size:0.98em;font-weight:500;display:block;margin-bottom:4px;color:#f2f2f2;">Occasion</label>
+          <select id="gift-action-occasion-select" style="width:100%;padding:8px;border-radius:6px;background:#232323;color:#f2f2f2;border:1px solid #444;font-size:1em;">
+            <option value="">None</option>
+            <option value="birthday">Birthday</option>
+            <option value="christmas">Christmas</option>
+            <option value="valentines">Valentine's Day</option>
+            <option value="anniversary">Anniversary</option>
+            <option value="mothersday">Mother's Day</option>
+            <option value="fathersday">Father's Day</option>
+            <option value="easter">Easter</option>
+            <option value="graduation">Graduation</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div style="display:flex;gap:18px;justify-content:center;width:100%;margin-top:8px;">
-          <button id="gift-action-edit-btn" title="Edit Notes" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">✏️</button>
+          <button id="gift-action-edit-btn" title="Edit Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">✏️</button>
           <button id="gift-action-delete-btn" title="Delete Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">🗑️</button>
           <button id="gift-action-copy-grocery-btn" title="Copy to Groceries" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">🛒</button>
+          <button id="gift-action-promote-btn" title="Convert to Given Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;display:none;">🎁</button>
         </div>
       </div>
     </div>
@@ -46,6 +65,62 @@ function openGiftActionModal(gift) {
   notesTextarea.readOnly = true;
   saveBtn.style.display = 'none';
 
+  // Year dropdown
+  const yearSelect = document.getElementById('gift-action-year-select');
+  yearSelect.innerHTML = '';
+  const now = new Date().getFullYear();
+  const years = [now - 1, now, now + 1, now + 2];
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = 'Any';
+  if (!gift.year) placeholderOption.selected = true;
+  yearSelect.appendChild(placeholderOption);
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    if (gift.year == y) opt.selected = true;
+    yearSelect.appendChild(opt);
+  });
+  yearSelect.onchange = async function() {
+    const newYear = this.value ? parseInt(this.value, 10) : null;
+    if (newYear !== gift.year) {
+      try {
+        const { error } = await supabaseClient
+          .from('gifts')
+          .update({ year: newYear })
+          .eq('id', gift.id);
+        if (!error) {
+          gift.year = newYear;
+          renderGiftIdeas();
+          renderGiftsGiven();
+          renderGiftsReceived();
+        }
+      } catch (e) { console.error('Failed to update year', e); }
+    }
+  };
+
+  // Occasion dropdown
+  const occasionSelect = document.getElementById('gift-action-occasion-select');
+  occasionSelect.value = gift.occasion || '';
+  occasionSelect.onchange = async function() {
+    const newOccasion = this.value || null;
+    if (newOccasion !== gift.occasion) {
+      try {
+        const { error } = await supabaseClient
+          .from('gifts')
+          .update({ occasion: newOccasion })
+          .eq('id', gift.id);
+        if (!error) {
+          gift.occasion = newOccasion;
+          renderGiftIdeas();
+          renderGiftsGiven();
+          renderGiftsReceived();
+        }
+      } catch (e) { console.error('Failed to update occasion', e); }
+    }
+  };
+
   // Edit button opens full edit gift modal
   document.getElementById('gift-action-edit-btn').onclick = function() {
     closeGiftActionModal();
@@ -59,6 +134,17 @@ function openGiftActionModal(gift) {
     closeGiftActionModal();
     await copyGiftToGrocery(gift);
   };
+  // Promote to Given button (only for idea-type gifts)
+  const promoteBtn = document.getElementById('gift-action-promote-btn');
+  if (gift.type === 'idea') {
+    promoteBtn.style.display = '';
+    promoteBtn.onclick = function() {
+      closeGiftActionModal();
+      promoteIdeaToGiven(gift.id);
+    };
+  } else {
+    promoteBtn.style.display = 'none';
+  }
   saveBtn.onclick = async function() {
     const notes = notesTextarea.value;
     await updateGiftNotes(gift.id, notes);
@@ -118,9 +204,10 @@ function switchMobileTab(view) {
   // Switch to the main view
   switchView(view);
   
-  // Reset mobile sub-view when switching tabs
-  if (view === 'people') {
-    mobileSubView = selectedPersonId ? 'ideas' : 'people';
+  // Don't reset mobile sub-view when switching tabs - preserve the last viewed section
+  // Only default to 'people' if no person is selected
+  if (view === 'people' && !selectedPersonId) {
+    mobileSubView = 'people';
     localStorage.setItem('giftplan_mobileSubView', mobileSubView);
   }
   updateMobilePeopleViewLayout();
@@ -698,9 +785,9 @@ function renderArchivedPeopleList() {
     nameSpan.innerHTML = `${person.name} <span class="person-archived-label">(archived)</span>`;
     li.appendChild(nameSpan);
 
+    // Triple-dot menu for actions
     const actions = document.createElement('div');
     actions.className = 'person-actions';
-
     const menuBtn = document.createElement('button');
     menuBtn.className = 'edit-btn';
     menuBtn.innerHTML = '&#8942;'; // vertical ellipsis (triple dot menu)
@@ -856,16 +943,6 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   actions.className = 'gift-box-actions';
 
   if (!isReceived) {
-        // Copy to Grocery button
-        const copyToGroceryBtn = document.createElement('button');
-        copyToGroceryBtn.className = 'copy-to-grocery-btn';
-        copyToGroceryBtn.title = 'Copy to Grocery List';
-        copyToGroceryBtn.innerHTML = '🛒';
-        copyToGroceryBtn.onclick = async (e) => {
-          e.stopPropagation();
-          await copyGiftToGrocery(gift);
-        };
-        actions.appendChild(copyToGroceryBtn);
         // Indicator if already in groceries (async)
         const groceryIndicator = document.createElement('span');
         groceryIndicator.className = 'gift-grocery-indicator';
@@ -935,11 +1012,11 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
       if (error) return false;
       return data && data.length > 0;
     }
-    // Year dropdown
+    // Year dropdown (hidden on mobile, shown in modal instead)
     const now = new Date().getFullYear();
     const years = [now - 1, now, now + 1, now + 2];
     const yearSelect = document.createElement('select');
-    yearSelect.className = 'year-btn';
+    yearSelect.className = 'year-btn gift-year-desktop-only';
     yearSelect.title = 'Change Year';
     const placeholderOption = document.createElement('option');
     placeholderOption.value = '';
@@ -971,16 +1048,6 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
       }
     };
     actions.appendChild(yearSelect);
-
-    // Promote to Given button (only for idea-type gifts)
-    if (gift.type === 'idea') {
-      const promoteBtn = document.createElement('button');
-      promoteBtn.className = 'promote-btn';
-      promoteBtn.innerHTML = '🎁';
-      promoteBtn.title = 'Convert to Given Gift';
-      promoteBtn.onclick = () => promoteIdeaToGiven(gift.id);
-      actions.appendChild(promoteBtn);
-    }
 
     // Triple dot menu button
     const menuBtn = document.createElement('button');
@@ -1436,14 +1503,14 @@ function renderGiftsGiven() {
   const grouped = groupGiftsByYear(givenGifts);
   // Render anytime gifts first
   if (grouped.anytime.length > 0) {
-    const section = createYearSection('💡 IDEAS (ANYTIME)', grouped.anytime);
+    const section = createGiftColumnSection('No Year', grouped.anytime, false, true);
     container.appendChild(section);
   }
   // Render by year (descending)
   const years = Object.keys(grouped.byYear).sort((a, b) => b - a);
   years.forEach(year => {
     const gifts = grouped.byYear[year];
-    const section = createYearSection(`📅 ${year} Gifts`, gifts);
+    const section = createGiftColumnSection(year, gifts, false, false);
     container.appendChild(section);
   });
   // (Removed duplicate/erroneous block)
@@ -1553,11 +1620,11 @@ function createGiftColumnBox(gift, isReceived) {
     header.appendChild(occasionSpan);
   }
 
-  // Year dropdown
+  // Year dropdown (hidden on mobile, shown in modal instead)
   const now = new Date().getFullYear();
   const years = [now - 1, now, now + 1, now + 2];
   const yearSelect = document.createElement('select');
-  yearSelect.className = 'year-btn';
+  yearSelect.className = 'year-btn gift-year-desktop-only';
   yearSelect.title = 'Change Year';
   const placeholderOption = document.createElement('option');
   placeholderOption.value = '';
@@ -1767,7 +1834,7 @@ function initEventListeners() {
 }
 
 // --- Person Summary Modal ---
-function openPersonSummaryModal(person) {
+async function openPersonSummaryModal(person) {
   editingPerson = person;
   document.getElementById('modal-overlay').style.display = 'block';
   document.getElementById('person-summary-modal').style.display = 'block';
@@ -1776,13 +1843,15 @@ function openPersonSummaryModal(person) {
   let infoHtml = '';
   infoHtml += `<div><strong>Name:</strong> <span id="person-summary-name">${person.name}</span></div>`;
   infoHtml += `<div><strong>Birthday:</strong> <span id="person-summary-birthday">${person.birthday ? person.birthday : '<span style=\"color:#888\">(none)</span>'}</span></div>`;
-  // Calculate stats for this person
-  const stats = calculateStats(allGiftsForPerson);
+  // Fetch gifts for THIS person (not the currently selected person)
+  const personGifts = await fetchAllGiftsForPerson(person.id);
+  const stats = calculateStats(personGifts);
   infoHtml += `<div><strong>Total Gifts Given:</strong> ${stats.allGiven}</div>`;
   infoHtml += `<div><strong>Total Gifts Received:</strong> ${stats.allReceived}</div>`;
   infoHtml += `<div><strong>Notes:</strong> <span id="person-summary-notes">${person.notes ? person.notes.replace(/\n/g, '<br>') : '<span style=\"color:#888\">(none)</span>'}</span></div>`;
   document.getElementById('person-summary-info').innerHTML = infoHtml;
   // Hide edit fields and show summary
+  document.getElementById('person-summary-info').style.display = '';
   document.getElementById('person-summary-edit-fields').style.display = 'none';
   document.getElementById('edit-person-btn').style.display = '';
   document.getElementById('save-person-edit-btn').style.display = 'none';

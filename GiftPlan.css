@@ -1,3 +1,21 @@
+/* Triple-dot menu for gifts (matches todo/grocery style) */
+.gift-menu-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.7em;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gift-menu-btn:hover, .gift-menu-btn:focus {
+  background: #222;
+  color: #FF4F91;
+  outline: none;
+}
 /* --- MOBILE HEADER FOR GIFTPLAN --- */
 @media (max-width: 768px) {
   /* Ensure people list is visible above bottom tabs */
@@ -134,6 +152,10 @@
 }
 @media (max-width: 768px) {
   .header-logo {
+    display: none !important;
+  }
+  /* Hide year dropdown on gift boxes in mobile - use modal instead */
+  .gift-year-desktop-only {
     display: none !important;
   }
 }
@@ -619,14 +641,18 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #23272e;
+  background: #1a1a1a;
   color: #fff;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.45);
   z-index: 1100;
-  min-width: 320px;
-  max-width: 95vw;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  width: 320px;
   padding: 24px 24px 18px 24px;
+  box-sizing: border-box;
 }
 .modal h2 {
   color: #ffaac9;
@@ -951,6 +977,11 @@
   color: #ffaac9;
   font-size: 0.95em;
 }
+@media (max-width: 768px) {
+  .gift-box-header .gift-occasion {
+    margin-left: auto;
+  }
+}
 .gift-box-body {
   display: flex;
   flex-direction: row;
@@ -998,18 +1029,19 @@
 .edit-btn {
   background: none;
   border: none;
-  font-size: 1.3em;
+  color: #aaa;
+  font-size: 1.7em;
+  padding: 4px 10px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  opacity: 0.85;
-  color: #fff;
-  transition: opacity 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .edit-btn:hover {
-  opacity: 1;
-  background: none;
+  background: #222;
   color: #FF4F91;
+  outline: none;
 }
 .gift-box-priority {
   display: flex;
@@ -1818,7 +1850,7 @@
   #people-view.mobile-show-given #gifts-given-list {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 80px;
+    padding-bottom: 130px;
   }
   
   /* Mobile show received only */
@@ -1847,7 +1879,7 @@
   #people-view.mobile-show-received #gifts-received-list {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 80px;
+    padding-bottom: 130px;
   }
   
   /* Mobile view dropdown */

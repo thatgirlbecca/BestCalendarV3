@@ -1,3 +1,66 @@
+// --- Triple-dot menu modal logic ---
+let itemMenuCurrentId = null;
+function openItemMenuModal(event, itemId) {
+	event.stopPropagation();
+	itemMenuCurrentId = itemId;
+	const modal = document.getElementById('grocery-item-menu-modal');
+	modal.style.display = 'block';
+
+	// Set correct label for archive/delete depending on section
+	const item = groceryItems.find(i => i.id === itemId);
+	const archiveBtn = document.getElementById('item-menu-archive-btn');
+	if (item && (item.section === 'archive' || item.checked)) {
+		archiveBtn.textContent = '🗑️ Delete';
+		archiveBtn.title = 'Delete';
+	} else {
+		archiveBtn.textContent = '📦 Archive';
+		archiveBtn.title = 'Archive';
+	}
+
+	// Always re-bind modal button handlers to ensure they work
+	document.getElementById('item-menu-edit-btn').onclick = function(e) {
+		e.stopPropagation();
+		handleMenuEdit();
+	};
+	document.getElementById('item-menu-archive-btn').onclick = function(e) {
+		e.stopPropagation();
+		handleMenuArchive();
+	};
+	document.getElementById('item-menu-cancel-btn').onclick = function(e) {
+		e.stopPropagation();
+		closeItemMenuModal();
+	};
+}
+function closeItemMenuModal() {
+	document.getElementById('grocery-item-menu-modal').style.display = 'none';
+	itemMenuCurrentId = null;
+}
+function handleMenuEdit() {
+	if (itemMenuCurrentId) {
+		console.log('[DEBUG] handleMenuEdit called for itemMenuCurrentId:', itemMenuCurrentId);
+		openEditItemForm(itemMenuCurrentId);
+		closeItemMenuModal();
+	}
+}
+function handleMenuArchive() {
+	if (itemMenuCurrentId) {
+		const item = groceryItems.find(i => i.id === itemMenuCurrentId);
+		if (item.checked) {
+			// Item is already archived (checked), so delete it
+			deleteItem(itemMenuCurrentId);
+			closeItemMenuModal();
+		} else {
+			// Archive (check off)
+			toggleItemCheck(itemMenuCurrentId);
+			closeItemMenuModal();
+		}
+	}
+}
+// Close menu modal on outside click
+window.addEventListener('click', function(event) {
+	const modal = document.getElementById('grocery-item-menu-modal');
+	if (modal && event.target === modal) closeItemMenuModal();
+});
 // Move item from Active to Wishlist (global scope)
 async function moveToWishlist(itemId) {
 	const item = groceryItems.find(i => i.id === itemId);
@@ -219,25 +282,22 @@ function renderGroceryItems() {
 								<span class="item-name">${escapeHtml(item.name)}</span>
 								${item.priority ? `<span class="priority-badge ${item.priority}" style="margin-left:8px;vertical-align:middle;">${item.priority.toUpperCase()}</span>` : ''}
 								<span class="archive-origin-label" style="margin-left:12px;font-size:0.9em;color:#888;background:#f3f3f3;padding:2px 8px;border-radius:8px;vertical-align:middle;">From: ${item.section === 'Wishlist' ? 'Wishlist' : 'Active'}</span>
-							</div>
 						</div>
-						<div class="item-type-row">
-							<span class="item-type ${item.type}">${getTypeLabel(item.type)}</span>
-							${item.labels ? `${item.labels.split(',').map(label => `<span class="label-tag">${escapeHtml(label.trim())}</span>`).join('')}` : ''}
-						</div>
-						<div class="item-meta">
-							${item.due_date ? `<span class="item-meta-item">📅 ${formatDate(item.due_date)}</span>` : ''}
-						</div>
-						${item.description ? `<div class="item-description">📝 ${escapeHtml(item.description.substring(0, 100))}${item.description.length > 100 ? '...' : ''}</div>` : ''}
 					</div>
-					<div class="item-actions" onclick="event.stopPropagation()">
-						<button class="item-action-btn" onclick="openEditItemForm('${item.id}')" title="Edit">
-							<span class="item-action-icon" aria-label="Edit">✏️</span>
-						</button>
-						<button class="item-action-btn delete" onclick="deleteItem('${item.id}')" title="Delete">
-							<span class="item-action-icon" aria-label="Delete">🗑️</span>
-						</button>
+					<div class="item-type-row">
+						<span class="item-type ${item.type}">${getTypeLabel(item.type)}</span>
+						${item.labels ? `${item.labels.split(',').map(label => `<span class="label-tag">${escapeHtml(label.trim())}</span>`).join('')}` : ''}
 					</div>
+					<div class="item-meta">
+						${item.due_date ? `<span class="item-meta-item">📅 ${formatDate(item.due_date)}</span>` : ''}
+					</div>
+					${item.description ? `<div class="item-description">📝 ${escapeHtml(item.description.substring(0, 100))}${item.description.length > 100 ? '...' : ''}</div>` : ''}
+				</div>
+				<div class="item-actions" onclick="event.stopPropagation()">
+					<button class="item-action-btn menu" onclick="openItemMenuModal(event, '${item.id}');" title="More actions" aria-label="More actions">
+						<span class="item-action-icon" aria-label="Menu">⋮</span>
+					</button>
+				</div>
 				</div>
 			`;
 		}).join('');
@@ -291,11 +351,8 @@ function renderGroceryItems() {
 					${item.description ? `<div class="item-description">📝 ${escapeHtml(item.description.substring(0, 100))}${item.description.length > 100 ? '...' : ''}</div>` : ''}
 				</div>
 				<div class="item-actions" onclick="event.stopPropagation()">
-					<button class="item-action-btn" onclick="openEditItemForm('${item.id}')" title="Edit">
-						<span class="item-action-icon" aria-label="Edit">✏️</span>
-					</button>
-					<button class="item-action-btn delete" onclick="deleteItem('${item.id}')" title="Delete">
-						<span class="item-action-icon" aria-label="Delete">🗑️</span>
+					<button class="item-action-btn menu" onclick="openItemMenuModal(event, '${item.id}');" title="More actions" aria-label="More actions">
+						<span class="item-action-icon" aria-label="Menu">⋮</span>
 					</button>
 				</div>
 			</div>
@@ -482,6 +539,7 @@ function openAddItemForm() {
 // Open edit item form
 function openEditItemForm(itemId) {
 	const item = groceryItems.find(i => i.id === itemId);
+	console.log('[DEBUG] openEditItemForm called for itemId:', itemId, 'item:', item);
 	if (!item) return;
 
 	editingItemId = itemId;
@@ -496,8 +554,14 @@ function openEditItemForm(itemId) {
 	document.getElementById('item-link').value = item.link || '';
 	document.getElementById('item-store').value = item.store || '';
 
-	document.getElementById('item-modal').style.display = 'block';
-	setTimeout(() => document.getElementById('item-name').focus(), 100);
+	// Always show the edit modal
+	const editModal = document.getElementById('item-modal');
+	if (editModal) {
+		editModal.style.display = 'block';
+		setTimeout(() => document.getElementById('item-name').focus(), 100);
+	} else {
+		console.error('[DEBUG] item-modal not found in DOM');
+	}
 }
 
 // Close item form
@@ -734,17 +798,32 @@ function closeDetailsModal() {
 function openSortMenu() {
 	const modal = document.getElementById('sort-modal');
 	const settings = sortSettings[currentView];
-	
+
 	// Populate modal with current settings
 	document.getElementById('sort-select-modal').value = settings.by;
 	document.getElementById('sort-direction-modal-btn').textContent = settings.direction === 'asc' ? '↑' : '↓';
 	document.getElementById('sort-direction-modal-btn').dataset.direction = settings.direction;
-	
+
 	document.getElementById('sort-select-secondary-modal').value = settings.secondaryBy || '';
 	document.getElementById('sort-direction-secondary-modal-btn').textContent = settings.secondaryDirection === 'asc' ? '↑' : '↓';
 	document.getElementById('sort-direction-secondary-modal-btn').dataset.direction = settings.secondaryDirection;
-	
+
 	modal.style.display = 'block';
+
+	// Add click-away listener to close modal
+	function handleSortModalClick(event) {
+		if (event.target === modal) {
+			closeSortMenu();
+		}
+	}
+	modal.addEventListener('click', handleSortModalClick);
+
+	// Remove listener when modal closes
+	const originalClose = closeSortMenu;
+	closeSortMenu = function() {
+		modal.removeEventListener('click', handleSortModalClick);
+		originalClose();
+	};
 }
 
 // Close sort menu modal

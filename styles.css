@@ -380,6 +380,7 @@ body {
     display: flex;
     flex-direction: column;
     margin: 0;
+    padding: 0;
     overflow: hidden;
 }
 
@@ -393,6 +394,8 @@ body {
     color: #FF4F91;
     flex: 0 0 auto;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #header-left {
@@ -1001,11 +1004,14 @@ body {
 #weekdays-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
     background-color: #333;
     color: #FF4F91;
     text-align: center;
-    padding: 6px 8px; /* reduce vertical padding so header consumes less height */
+    padding: 6px 0; /* remove horizontal padding so header spans full width */
     flex: 0 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 #calendar-body {
@@ -1019,7 +1025,9 @@ body {
     /* Ensure rows can shrink with available space and avoid forcing page scroll */
     grid-auto-rows: minmax(0, 1fr);
     /* allow internal scrolling if month content exceeds viewport */
-    overflow: auto;
+    overflow: hidden;
+    width: 100%;
+    min-height: 0;
 }
 
 #calendar-body div {
@@ -1342,6 +1350,44 @@ body {
 #calendar-body div.next-date {
     background-color: #282828; /* Same color as main cells */
     color: transparent; /* just in case content appears */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Butterfly pattern for empty cells */
+#calendar-body div.prev-date::before,
+#calendar-body div.next-date::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.12;
+    background-image: 
+        /* Butterfly 1: Classic rounded wings with spots */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23aaa'%3E%3Cellipse cx='28' cy='32' rx='24' ry='28' transform='rotate(-25 28 32)'/%3E%3Cellipse cx='72' cy='32' rx='24' ry='28' transform='rotate(25 72 32)'/%3E%3Cellipse cx='32' cy='68' rx='18' ry='22' transform='rotate(-15 32 68)'/%3E%3Cellipse cx='68' cy='68' rx='18' ry='22' transform='rotate(15 68 68)'/%3E%3Cellipse cx='50' cy='50' rx='5' ry='38'/%3E%3Ccircle cx='50' cy='10' r='6'/%3E%3Cpath d='M50 5 Q42 -5 38 2 M50 5 Q58 -5 62 2' stroke='%23aaa' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='35' cy='30' r='8' fill='%23222'/%3E%3Ccircle cx='65' cy='30' r='8' fill='%23222'/%3E%3Ccircle cx='38' cy='65' r='5' fill='%23222'/%3E%3Ccircle cx='62' cy='65' r='5' fill='%23222'/%3E%3C/g%3E%3C/svg%3E"),
+        /* Butterfly 2: Elongated elegant wings, tilted left */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23999' transform='rotate(-15 50 50)'%3E%3Cellipse cx='28' cy='30' rx='22' ry='32' transform='rotate(-35 28 30)'/%3E%3Cellipse cx='72' cy='30' rx='22' ry='32' transform='rotate(35 72 30)'/%3E%3Cellipse cx='34' cy='70' rx='14' ry='20' transform='rotate(-25 34 70)'/%3E%3Cellipse cx='66' cy='70' rx='14' ry='20' transform='rotate(25 66 70)'/%3E%3Cellipse cx='50' cy='50' rx='4' ry='36'/%3E%3Ccircle cx='50' cy='12' r='5'/%3E%3Cpath d='M50 8 Q42 0 38 6 M50 8 Q58 0 62 6' stroke='%23999' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='30' cy='28' r='7' fill='%23222'/%3E%3Ccircle cx='70' cy='28' r='7' fill='%23222'/%3E%3C/g%3E%3C/svg%3E"),
+        /* Butterfly 3: Wide wings with double spots, tilted right */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23bbb' transform='rotate(20 50 50)'%3E%3Cellipse cx='26' cy='35' rx='26' ry='28' transform='rotate(-30 26 35)'/%3E%3Cellipse cx='74' cy='35' rx='26' ry='28' transform='rotate(30 74 35)'/%3E%3Cellipse cx='34' cy='72' rx='16' ry='20' transform='rotate(-12 34 72)'/%3E%3Cellipse cx='66' cy='72' rx='16' ry='20' transform='rotate(12 66 72)'/%3E%3Cellipse cx='50' cy='52' rx='5' ry='36'/%3E%3Ccircle cx='50' cy='14' r='5'/%3E%3Cpath d='M48 10 Q38 2 34 8 M52 10 Q62 2 66 8' stroke='%23bbb' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='30' r='6' fill='%23222'/%3E%3Ccircle cx='78' cy='30' r='6' fill='%23222'/%3E%3Ccircle cx='30' cy='42' r='4' fill='%23222'/%3E%3Ccircle cx='70' cy='42' r='4' fill='%23222'/%3E%3C/g%3E%3C/svg%3E"),
+        /* Butterfly 4: Small cute round wings */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23ccc'%3E%3Ccircle cx='32' cy='35' r='22'/%3E%3Ccircle cx='68' cy='35' r='22'/%3E%3Ccircle cx='36' cy='68' r='16'/%3E%3Ccircle cx='64' cy='68' r='16'/%3E%3Cellipse cx='50' cy='52' rx='6' ry='35'/%3E%3Ccircle cx='50' cy='14' r='7'/%3E%3Cpath d='M50 8 Q40 -2 35 5 M50 8 Q60 -2 65 5' stroke='%23ccc' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='35' r='10' fill='%23222'/%3E%3Ccircle cx='68' cy='35' r='10' fill='%23222'/%3E%3Ccircle cx='36' cy='68' r='6' fill='%23222'/%3E%3Ccircle cx='64' cy='68' r='6' fill='%23222'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 36px 36px, 30px 30px, 26px 26px, 20px 20px;
+    background-position: 8% 15%, 72% 65%, 55% 12%, 22% 78%;
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+/* Mobile: single centered butterfly */
+@media (max-width: 768px) {
+    #calendar-body div.prev-date::before,
+    #calendar-body div.next-date::before {
+        background-image: 
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23aaa'%3E%3Cellipse cx='28' cy='32' rx='24' ry='28' transform='rotate(-25 28 32)'/%3E%3Cellipse cx='72' cy='32' rx='24' ry='28' transform='rotate(25 72 32)'/%3E%3Cellipse cx='32' cy='68' rx='18' ry='22' transform='rotate(-15 32 68)'/%3E%3Cellipse cx='68' cy='68' rx='18' ry='22' transform='rotate(15 68 68)'/%3E%3Cellipse cx='50' cy='50' rx='5' ry='38'/%3E%3Ccircle cx='50' cy='10' r='6'/%3E%3Cpath d='M50 5 Q42 -5 38 2 M50 5 Q58 -5 62 2' stroke='%23aaa' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='35' cy='30' r='8' fill='%23222'/%3E%3Ccircle cx='65' cy='30' r='8' fill='%23222'/%3E%3Ccircle cx='38' cy='65' r='5' fill='%23222'/%3E%3Ccircle cx='62' cy='65' r='5' fill='%23222'/%3E%3C/g%3E%3C/svg%3E");
+        background-size: 28px 28px;
+        background-position: center;
+    }
 }
 
 .open-button {
