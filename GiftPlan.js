@@ -129,21 +129,38 @@ function openGiftActionModal(gift) {
 
   // Public toggle
   const publicToggle = document.getElementById('gift-action-public-toggle');
-  publicToggle.checked = gift.public !== false; // Default to true if undefined
+  // Handle both string and boolean values from Supabase
+  const isPublicValue = gift.public === true || gift.public === 'true';
+  publicToggle.checked = isPublicValue;
   publicToggle.onchange = async function() {
     const isPublic = this.checked;
     try {
-      const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from('gifts')
         .update({ public: isPublic })
-        .eq('id', gift.id);
-      if (!error) {
-        gift.public = isPublic;
+        .eq('id', gift.id)
+        .select();
+      
+      if (error) {
+        console.error('[GiftPlan] Failed to update public status:', error);
+        this.checked = !isPublic;
+      } else if (data && data.length > 0) {
+        gift.public = data[0].public;
+        // Find and update the gift in allGiftsForPerson array
+        const giftIndex = allGiftsForPerson.findIndex(g => g.id === gift.id);
+        if (giftIndex !== -1) {
+          allGiftsForPerson[giftIndex].public = data[0].public;
+        }
         renderGiftIdeas();
         renderGiftsGiven();
         renderGiftsReceived();
+      } else {
+        this.checked = !isPublic;
       }
-    } catch (e) { console.error('Failed to update public status', e); }
+    } catch (e) { 
+      console.error('[GiftPlan] Exception updating public status:', e);
+      this.checked = !isPublic;
+    }
   };
 
   // Edit button opens full edit gift modal
@@ -448,10 +465,13 @@ async function shareGiftIdeas() {
     return;
   }
 
-  // Filter to only show 'idea' type gifts with the current year filter, and only public ones
+  // Filter to only show 'idea' type gifts, public ones, and only anytime or current year (not past years)
   const ideaGifts = allGiftsForPerson.filter(g => g.type === 'idea');
-  const yearFilteredGifts = filterGiftsByYear(ideaGifts, showAllYears, currentYear);
-  const filteredGifts = yearFilteredGifts.filter(g => g.public !== false); // Only include public gifts
+  const currentYearNum = new Date().getFullYear();
+  // Only include anytime (null year) or current/future years, exclude past years
+  const yearFilteredGifts = ideaGifts.filter(g => g.year === null || g.year >= currentYearNum);
+  // Handle both string and boolean values - only include public gifts
+  const filteredGifts = yearFilteredGifts.filter(g => g.public === true || g.public === 'true' || g.public === undefined || g.public === null);
 
   if (filteredGifts.length === 0) {
     alert(`No public gift ideas to share for ${person.name}.`);
@@ -463,11 +483,22 @@ async function shareGiftIdeas() {
   
   filteredGifts.forEach(gift => {
     const title = gift.item || '(No item)';
-    const price = gift.cost ? formatCurrency(gift.cost) : 'N/A';
-    const store = gift.store || 'N/A';
     const occasion = capitalizeOccasion(gift.occasion);
     
-    text += `${title} (${price} - ${store}) - ${occasion}\n`;
+    // Build price/store part only if data exists
+    const hasPrice = gift.cost && gift.cost > 0;
+    const hasStore = gift.store && gift.store.trim() !== '';
+    
+    let details = '';
+    if (hasPrice && hasStore) {
+      details = ` (${formatCurrency(gift.cost)} - ${gift.store})`;
+    } else if (hasPrice) {
+      details = ` (${formatCurrency(gift.cost)})`;
+    } else if (hasStore) {
+      details = ` (${gift.store})`;
+    }
+    
+    text += `${title}${details} - ${occasion}\n`;
   });
 
   // Copy to clipboard
@@ -1009,8 +1040,8 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   itemSpan.textContent = gift.item || '(No item)';
   header.appendChild(itemSpan);
 
-  // Private indicator (if not public)
-  if (gift.public === false) {
+  // Private indicator (if not public) - handle both string and boolean
+  if (gift.public === false || gift.public === 'false') {
     const privateSpan = document.createElement('span');
     privateSpan.className = 'gift-private-indicator';
     privateSpan.textContent = ' 🔒';
