@@ -109,7 +109,10 @@
                               <span id="selected-person-name">Select a Person</span>
                               <span id="selected-person-birthday" style="margin-left:8px;color:#888;font-size:0.98em;"></span>
                             </span>
-                            <button id="add-gift-btn-mobile" class="add-gift-column-btn" title="Add Gift Idea" onclick="document.getElementById('add-gift-btn').click()">+</button>
+                            <div style="display:flex;gap:6px;">
+                              <button id="share-ideas-btn-mobile" class="add-gift-column-btn" title="Share Ideas" onclick="shareGiftIdeas()">📋</button>
+                              <button id="add-gift-btn-mobile" class="add-gift-column-btn" title="Add Gift Idea" onclick="document.getElementById('add-gift-btn').click()">+</button>
+                            </div>
                         </div>
                         <!-- DESKTOP: Keep original title for desktop -->
                     
@@ -119,6 +122,7 @@
                             <span class="mobile-only">All Yrs</span>
                         </label>
                         <span id="gift-plan-total">Potential: $0.00</span>
+                        <button id="share-ideas-btn" class="desktop-only" title="Share Ideas" onclick="shareGiftIdeas()">📋</button>
                         <button id="add-gift-btn" class="desktop-only" title="Add Gift Idea">+</button>
                     </div>
                     <div id="gift-boxes-container"></div>

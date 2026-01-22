@@ -801,7 +801,7 @@
 }
 
 /* Add gift/received buttons in headers */
-#add-gift-btn, #add-received-gift-btn {
+#add-gift-btn, #add-received-gift-btn, #share-ideas-btn {
   background: #FF4F91;
   color: #fff;
   border: none;
@@ -815,7 +815,7 @@
   align-items: center;
   justify-content: center;
 }
-#add-gift-btn:hover, #add-received-gift-btn:hover {
+#add-gift-btn:hover, #add-received-gift-btn:hover, #share-ideas-btn:hover {
   background: #ffaac9;
   color: #23272e;
 }

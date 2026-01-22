@@ -35,6 +35,12 @@ function ensureGiftActionModal() {
             <option value="other">Other</option>
           </select>
         </div>
+        <div id="gift-action-public-section" style="width:100%;margin-bottom:8px;">
+          <label style="font-size:0.98em;font-weight:500;display:flex;align-items:center;gap:8px;color:#f2f2f2;cursor:pointer;">
+            <input type="checkbox" id="gift-action-public-toggle" style="width:18px;height:18px;cursor:pointer;">
+            <span>Public (include when sharing)</span>
+          </label>
+        </div>
         <div style="display:flex;gap:18px;justify-content:center;width:100%;margin-top:8px;">
           <button id="gift-action-edit-btn" title="Edit Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">✏️</button>
           <button id="gift-action-delete-btn" title="Delete Gift" class="icon-btn" style="font-size:1.5em;background:none;border:none;cursor:pointer;color:#f2f2f2;">🗑️</button>
@@ -119,6 +125,25 @@ function openGiftActionModal(gift) {
         }
       } catch (e) { console.error('Failed to update occasion', e); }
     }
+  };
+
+  // Public toggle
+  const publicToggle = document.getElementById('gift-action-public-toggle');
+  publicToggle.checked = gift.public !== false; // Default to true if undefined
+  publicToggle.onchange = async function() {
+    const isPublic = this.checked;
+    try {
+      const { error } = await supabaseClient
+        .from('gifts')
+        .update({ public: isPublic })
+        .eq('id', gift.id);
+      if (!error) {
+        gift.public = isPublic;
+        renderGiftIdeas();
+        renderGiftsGiven();
+        renderGiftsReceived();
+      }
+    } catch (e) { console.error('Failed to update public status', e); }
   };
 
   // Edit button opens full edit gift modal
@@ -407,6 +432,60 @@ function getStatusIcon(status) {
     case 'purchased': return '✔️';
     case 'rejected': return '❌';
     default: return '☐';
+  }
+}
+
+// --- Share Gift Ideas ---
+async function shareGiftIdeas() {
+  if (!selectedPersonId) {
+    alert('Please select a person first.');
+    return;
+  }
+
+  const person = allPeopleList.find(p => p.id === selectedPersonId);
+  if (!person) {
+    alert('Person not found.');
+    return;
+  }
+
+  // Filter to only show 'idea' type gifts with the current year filter, and only public ones
+  const ideaGifts = allGiftsForPerson.filter(g => g.type === 'idea');
+  const yearFilteredGifts = filterGiftsByYear(ideaGifts, showAllYears, currentYear);
+  const filteredGifts = yearFilteredGifts.filter(g => g.public !== false); // Only include public gifts
+
+  if (filteredGifts.length === 0) {
+    alert(`No public gift ideas to share for ${person.name}.`);
+    return;
+  }
+
+  // Format the text
+  let text = `Gift Ideas for: ${person.name}\n`;
+  
+  filteredGifts.forEach(gift => {
+    const title = gift.item || '(No item)';
+    const price = gift.cost ? formatCurrency(gift.cost) : 'N/A';
+    const store = gift.store || 'N/A';
+    const occasion = capitalizeOccasion(gift.occasion);
+    
+    text += `${title} (${price} - ${store}) - ${occasion}\n`;
+  });
+
+  // Copy to clipboard
+  try {
+    await navigator.clipboard.writeText(text.trim());
+    alert('Gift ideas copied to clipboard!');
+  } catch (err) {
+    console.error('Failed to copy to clipboard:', err);
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text.trim();
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('Gift ideas copied to clipboard!');
   }
 }
 
@@ -929,6 +1008,15 @@ function createGiftBox(gift, showPersonName = false, isReceived = false) {
   const itemSpan = document.createElement('strong');
   itemSpan.textContent = gift.item || '(No item)';
   header.appendChild(itemSpan);
+
+  // Private indicator (if not public)
+  if (gift.public === false) {
+    const privateSpan = document.createElement('span');
+    privateSpan.className = 'gift-private-indicator';
+    privateSpan.textContent = ' 🔒';
+    privateSpan.title = 'Private - not included when sharing';
+    header.appendChild(privateSpan);
+  }
 
   // Occasion label (if set)
   if (gift.occasion) {
